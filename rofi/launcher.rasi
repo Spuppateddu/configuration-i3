@@ -1,0 +1,113 @@
+/* Gruvbox Dark launcher theme */
+
+* {
+    base:     #282828;
+    mantle:   #1d2021;
+    crust:    #1d2021;
+    surface0: #3c3836;
+    surface1: #504945;
+    text:     #ebdbb2;
+    subtext:  #a89984;
+    blue:     #83a598;
+    lavender: #fe8019;
+    mauve:    #d3869b;
+    red:      #fb4934;
+    transparent: #00000000;
+
+    /* Same single family as ../config. */
+    font: "Courier Prime 11";
+}
+
+window {
+    transparency:     "real";
+    location:         center;
+    anchor:           center;
+    fullscreen:       false;
+    width:            640px;
+    x-offset:         0;
+    y-offset:         0;
+    enabled:          true;
+    margin:           0;
+    padding:          0;
+    border:           2px;
+    border-radius:    14px;
+    border-color:     @lavender;
+    background-color: @base;
+    cursor:           "default";
+}
+
+mainbox {
+    enabled:          true;
+    spacing:          12px;
+    margin:           0;
+    padding:          18px;
+    background-color: transparent;
+    children:         [ "inputbar", "listview" ];
+}
+
+inputbar {
+    enabled:          true;
+    spacing:          10px;
+    padding:          10px 14px;
+    border-radius:    10px;
+    background-color: @surface0;
+    text-color:       @text;
+    children:         [ "prompt", "entry" ];
+}
+
+prompt {
+    enabled:          true;
+    background-color: transparent;
+    text-color:       @lavender;
+}
+
+entry {
+    enabled:          true;
+    background-color: transparent;
+    text-color:       @text;
+    cursor:           text;
+    placeholder:      "Search apps…";
+    placeholder-color: @subtext;
+}
+
+listview {
+    enabled:          true;
+    columns:          1;
+    lines:            8;
+    cycle:            true;
+    dynamic:          true;
+    scrollbar:        false;
+    spacing:          4px;
+    background-color: transparent;
+    text-color:       @text;
+    cursor:           "default";
+}
+
+element {
+    enabled:          true;
+    spacing:          10px;
+    padding:          8px 12px;
+    border-radius:    8px;
+    background-color: transparent;
+    text-color:       @text;
+    cursor:           pointer;
+}
+
+element normal.normal    { background-color: transparent; text-color: @text; }
+element alternate.normal { background-color: transparent; text-color: @text; }
+element selected.normal  { background-color: @lavender;   text-color: @base; }
+element selected.active  { background-color: @mauve;      text-color: @base; }
+element selected.urgent  { background-color: @red;        text-color: @base; }
+
+element-icon {
+    size:             1.1em;
+    background-color: transparent;
+    text-color:       inherit;
+}
+
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    vertical-align:   0.5;
+    horizontal-align: 0.0;
+}

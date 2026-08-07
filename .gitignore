@@ -1,0 +1,18 @@
+# Local Claude Code settings (machine-specific)
+.claude/
+CLAUDE.md
+
+# Editor / OS junk
+*.swp
+*.swo
+*~
+.DS_Store
+*.bak
+*.orig
+
+# Build / runtime artifacts
+*.log
+/tmp/
+
+# Machine-specific i3 overrides (per-PC display scaling, etc.)
+*.local

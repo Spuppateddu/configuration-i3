@@ -1,0 +1,214 @@
+# i3 config file (v4) — https://i3wm.org/docs/userguide.html
+# Kept in ~/.i3rc/ and included from ~/.config/i3/config.
+
+# ── Modifier ──────────────────────────────────────────────────────────────
+# Window key
+#set $mod Mod4
+# Alt key
+set $mod Mod1
+
+# ── Font ──────────────────────────────────────────────────────────────────
+# One family, everywhere: Courier Prime. Same single family in eww/rofi/dunst/gtk.
+font pango:Courier Prime 10
+
+# ── Autostart ─────────────────────────────────────────────────────────────
+exec --no-startup-id dex --autostart --environment i3
+exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
+exec_always --no-startup-id picom --config ~/.i3rc/picom/picom.conf
+exec_always --no-startup-id dunst -config ~/.i3rc/dunst/dunstrc
+# Gruvbox dark root window — no wallpaper. Uses feh (not xsetroot): picom
+# composites the _XROOTPMAP_ID pixmap, which only feh updates. See the script.
+exec_always --no-startup-id ~/.i3rc/scripts/set_background.sh
+exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
+# mpDris2 is NOT started here: it runs as a systemd user service (setup.sh
+# enables it), and a second copy just races it for the D-Bus name and fails.
+
+# Hide the mouse pointer while typing.
+exec_always --no-startup-id ~/.i3rc/scripts/restart_xbanish.sh
+
+# Keyboard: fast repeat + Caps→Ctrl, reapplied when a keyboard is (re)attached.
+exec_always --no-startup-id ~/.i3rc/scripts/restart_kbd.sh
+
+# Drop a stale resize-mode border override left in ~/.cache by a crash —
+# otherwise the `include` at the bottom keeps every focused border red for good.
+exec_always --no-startup-id ~/.i3rc/scripts/resize_border.sh clear
+
+# Screensaver stays off, so still no idle lock — xss-lock only fires on suspend.
+# DPMS is a separate timer and is on: panel off after 15min. Revert with -dpms.
+exec_always --no-startup-id xset s off s noblank +dpms dpms 0 0 900
+
+# ── Audio keys (PipeWire via wpctl) ───────────────────────────────────────
+# `-l 1.5` = 50% software boost past unity (ALSA is already at 0.00dB); it clips
+# on bass beyond that. scripts/volume.sh repeats the number — change both.
+bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
+bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindsym XF86AudioMute        exec --no-startup-id wpctl set-mute   @DEFAULT_AUDIO_SINK@ toggle
+bindsym XF86AudioMicMute     exec --no-startup-id wpctl set-mute   @DEFAULT_AUDIO_SOURCE@ toggle
+
+# Brightness keys (if supported).
+bindsym XF86MonBrightnessUp   exec --no-startup-id brightnessctl set +5%
+bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
+
+# Media keys.
+bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
+bindsym XF86AudioNext exec --no-startup-id playerctl next
+bindsym XF86AudioPrev exec --no-startup-id playerctl previous
+
+# ── Vim-style directions ──────────────────────────────────────────────────
+set $up    k
+set $down  j
+set $left  h
+set $right l
+
+floating_modifier $mod
+tiling_drag modifier titlebar
+
+# ── Core bindings ─────────────────────────────────────────────────────────
+bindsym $mod+Return exec alacritty
+bindsym $mod+q kill
+bindsym $mod+b exec --no-startup-id firefox --new-window
+
+# App launcher (rofi drun) and window switcher.
+bindsym $mod+d   exec --no-startup-id rofi -show drun -config ~/.i3rc/rofi/config.rasi
+bindsym $mod+Tab exec --no-startup-id rofi -show window -config ~/.i3rc/rofi/config.rasi
+
+# Toggle terminal (Alacritty) light/dark colour scheme.
+bindsym $mod+Shift+t exec --no-startup-id ~/.i3rc/scripts/theme.sh toggle
+
+# Toggle the top menu bar (eww).
+bindsym $mod+Shift+b exec --no-startup-id ~/.i3rc/scripts/toggle_eww.sh
+
+# Screenshot. The last two are one chord: i3 matches the post-modifier keysym,
+# which is `4` or `dollar` depending on layout, so both are bound.
+bindsym $mod+Shift+s exec --no-startup-id flameshot gui
+bindsym Control+Shift+4 exec --no-startup-id flameshot gui
+bindsym Control+Shift+dollar exec --no-startup-id flameshot gui
+
+# Lock & power menu.
+bindsym $mod+Shift+x exec --no-startup-id i3lock
+bindsym $mod+Shift+p exec --no-startup-id ~/.i3rc/scripts/powermenu.sh
+
+# Music: full TUI, and a quick rofi folder picker that enqueues + shuffles.
+bindsym $mod+m        exec --no-startup-id alacritty -e ncmpcpp
+bindsym $mod+Shift+m  exec --no-startup-id ~/.i3rc/scripts/play_folder.sh
+
+# ── Focus ─────────────────────────────────────────────────────────────────
+bindsym $mod+$left  focus left
+bindsym $mod+$down  focus down
+bindsym $mod+$up    focus up
+bindsym $mod+$right focus right
+bindsym $mod+Left   focus left
+bindsym $mod+Down   focus down
+bindsym $mod+Up     focus up
+bindsym $mod+Right  focus right
+
+# ── Move ──────────────────────────────────────────────────────────────────
+bindsym $mod+Shift+$left  move left
+bindsym $mod+Shift+$down  move down
+bindsym $mod+Shift+$up    move up
+bindsym $mod+Shift+$right move right
+bindsym $mod+Shift+Left   move left
+bindsym $mod+Shift+Down   move down
+bindsym $mod+Shift+Up     move up
+bindsym $mod+Shift+Right  move right
+
+# ── Split / layout ────────────────────────────────────────────────────────
+bindsym $mod+g split h
+bindsym $mod+v split v
+bindsym $mod+f fullscreen toggle
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space focus mode_toggle
+bindsym $mod+a focus parent
+
+# ── Scratchpad ────────────────────────────────────────────────────────────
+bindsym $mod+Shift+minus move scratchpad
+bindsym $mod+minus       scratchpad show
+
+# ── Workspaces ────────────────────────────────────────────────────────────
+bindsym $mod+Control+Right workspace next
+bindsym $mod+Control+Left  workspace prev
+
+bindsym $mod+1 workspace 1
+bindsym $mod+2 workspace 2
+bindsym $mod+3 workspace 3
+bindsym $mod+4 workspace 4
+bindsym $mod+5 workspace 5
+bindsym $mod+6 workspace 6
+bindsym $mod+7 workspace 7
+bindsym $mod+8 workspace 8
+bindsym $mod+9 workspace 9
+bindsym $mod+0 workspace 10
+
+bindsym $mod+Shift+1 move container to workspace 1
+bindsym $mod+Shift+2 move container to workspace 2
+bindsym $mod+Shift+3 move container to workspace 3
+bindsym $mod+Shift+4 move container to workspace 4
+bindsym $mod+Shift+5 move container to workspace 5
+bindsym $mod+Shift+6 move container to workspace 6
+bindsym $mod+Shift+7 move container to workspace 7
+bindsym $mod+Shift+8 move container to workspace 8
+bindsym $mod+Shift+9 move container to workspace 9
+bindsym $mod+Shift+0 move container to workspace 10
+
+# ── Session ───────────────────────────────────────────────────────────────
+bindsym $mod+Shift+c reload
+bindsym $mod+Shift+r restart
+bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'Exit i3? This ends your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
+
+# ── Resize mode ───────────────────────────────────────────────────────────
+mode "resize" {
+    bindsym $left  resize shrink width 10 px or 10 ppt
+    bindsym $down  resize grow   height 10 px or 10 ppt
+    bindsym $up    resize shrink height 10 px or 10 ppt
+    bindsym $right resize grow   width 10 px or 10 ppt
+
+    bindsym Left  resize shrink width 10 px or 10 ppt
+    bindsym Down  resize grow   height 10 px or 10 ppt
+    bindsym Up    resize shrink height 10 px or 10 ppt
+    bindsym Right resize grow   width 10 px or 10 ppt
+
+    bindsym Return exec --no-startup-id ~/.i3rc/scripts/resize_border.sh off
+    bindsym Escape exec --no-startup-id ~/.i3rc/scripts/resize_border.sh off
+    bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/resize_border.sh off
+}
+bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/resize_border.sh on
+
+# ── Firefox Picture-in-Picture ────────────────────────────────────────────
+# 'sticky' pins the PiP player to the output instead of the workspace that
+# spawned it. It only works on floating windows, hence 'floating enable' too.
+for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, sticky enable
+
+# ── Look: gaps, borders, colors (Gruvbox Dark) ────────────────────────────
+# NOT redundant with default_border: windows setting _MOTIF_WM_HINTS (Alacritty)
+# get `border none` and skip it, so this for_window puts the border back.
+for_window [class=".*"] border pixel 2
+default_border        pixel 2
+default_floating_border pixel 2
+# 'none' keeps the focused border visible even when a single window fills the screen
+hide_edge_borders none
+
+gaps inner 0
+gaps outer 0
+smart_gaps on
+
+# class                 border    backgr.   text      indicator child_border
+client.focused          #d3869b   #d3869b   #282828   #d3869b   #d3869b
+client.focused_inactive #3c3836   #3c3836   #a89984   #504945   #3c3836
+client.unfocused        #282828   #282828   #a89984   #504945   #282828
+client.urgent           #fb4934   #fb4934   #282828   #fb4934   #fb4934
+client.placeholder      #282828   #282828   #ebdbb2   #282828   #282828
+client.background       #282828
+
+# Resize mode recolors the focused border red via this override file
+# (see scripts/resize_border.sh). Empty when not in resize mode.
+include ~/.cache/i3/focus-override.conf
+
+# ── No built-in i3bar — the eww bar is launched by launch_eww.sh ─────────
+
+# ── Machine-specific overrides (git-ignored, not shared across PCs) ──────
+# Per-computer settings go in ~/.i3rc/config.local (see README); loaded last so
+# it overrides anything above, and a no-op where no such file exists.
+include ~/.i3rc/*.local

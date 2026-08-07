@@ -1,0 +1,63 @@
+/* Compact power menu theme */
+
+* {
+    base:     #282828;
+    text:     #ebdbb2;
+    surface0: #3c3836;
+    lavender: #fe8019;
+    blue:     #83a598;
+    /* Same single family as ../config. */
+    font: "Courier Prime 11";
+}
+
+window {
+    location:         center;
+    width:            260px;
+    border:           2px;
+    border-radius:    14px;
+    border-color:     @blue;
+    background-color: @base;
+}
+
+mainbox {
+    padding:          14px;
+    spacing:          10px;
+    background-color: transparent;
+    children:         [ "inputbar", "listview" ];
+}
+
+inputbar {
+    padding:          8px 12px;
+    border-radius:    10px;
+    background-color: @surface0;
+    children:         [ "prompt" ];
+}
+
+prompt {
+    background-color: transparent;
+    text-color:       @blue;
+}
+
+entry { enabled: false; }
+
+listview {
+    columns: 1; lines: 5; scrollbar: false; spacing: 4px;
+    background-color: transparent;
+}
+
+element {
+    padding:          8px 12px;
+    border-radius:    8px;
+    background-color: transparent;
+    text-color:       @text;
+    cursor:           pointer;
+}
+
+element selected.normal { background-color: @blue; text-color: @base; }
+
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    vertical-align:   0.5;
+    horizontal-align: 0.0;
+}

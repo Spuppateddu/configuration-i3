@@ -1,0 +1,95 @@
+/* Gruvbox Dark restyle for GTK menus (nm-applet, blueman, …).
+ * Loaded as user CSS on top of the base theme, so it wins.
+ * Palette matches ~/.i3rc/eww/eww.scss. */
+
+@define-color cat_base     #282828;
+@define-color cat_mantle   #1d2021;
+@define-color cat_surface0 #3c3836;
+@define-color cat_surface1 #504945;
+@define-color cat_overlay  #665c54;
+@define-color cat_text     #ebdbb2;
+@define-color cat_subtext  #a89984;
+@define-color cat_blue     #83a598;
+@define-color cat_lavender #fe8019;
+@define-color cat_mauve    #d3869b;
+
+/* ── Tracking ───────────────────────────────────────────────────────────────
+ * Same -1px the terminal and eww/eww.scss take, so dialogs sit beside a
+ * terminal evenly. On `*` because letter-spacing inherits. */
+* { letter-spacing: -1px; }
+
+/* ── Menu surface (GTK3 popup + GTK4/popover) ──────────────────────────── */
+menu,
+.menu,
+.context-menu,
+.csd menu,
+popover.background,
+popover.background > contents {
+  background-color: @cat_base;
+  color: @cat_text;
+  border: 1px solid @cat_surface1;
+  border-radius: 12px;
+  padding: 6px;
+}
+
+/* Rounded window + soft shadow instead of the hard black border */
+menu decoration,
+.menu decoration,
+popover.background {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Menu items ────────────────────────────────────────────────────────── */
+menu menuitem,
+.menu menuitem,
+popover.background modelbutton {
+  border-radius: 8px;
+  padding: 7px 14px;
+  margin: 1px 2px;
+  color: @cat_text;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+menu menuitem:hover,
+menu menuitem:focus,
+.menu menuitem:hover,
+popover.background modelbutton:hover {
+  background-color: @cat_lavender;
+  color: @cat_base;
+}
+
+menu menuitem:disabled,
+.menu menuitem:disabled {
+  color: @cat_overlay;
+}
+
+/* Accelerator / secondary label text */
+menu menuitem accelerator,
+menu menuitem arrow {
+  color: @cat_subtext;
+}
+menu menuitem:hover accelerator,
+menu menuitem:hover arrow {
+  color: @cat_base;
+}
+
+/* Check / radio marks */
+menu menuitem check,
+menu menuitem radio {
+  color: @cat_blue;
+}
+menu menuitem:hover check,
+menu menuitem:hover radio {
+  color: @cat_base;
+}
+
+/* ── Separators ────────────────────────────────────────────────────────── */
+menu separator,
+.menu separator,
+menu.separator,
+popover.background separator {
+  background-color: @cat_surface0;
+  min-height: 1px;
+  margin: 4px 8px;
+}

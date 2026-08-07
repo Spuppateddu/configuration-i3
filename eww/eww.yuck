@@ -1,0 +1,195 @@
+;; eww bar. Click/menu actions reuse ~/.i3rc/scripts/* (setup.sh pins the repo there).
+
+;; ── Data sources ─────────────────────────────────────────────────────────────
+(deflisten wsmap :initial "{}" "$HOME/.i3rc/eww/scripts/workspaces.sh")
+(deflisten player :initial '{"status":"none","title":"","artist":"","display":""}'
+  "$HOME/.i3rc/eww/scripts/player.sh")
+(deflisten net :initial '{"kind":"off","label":"offline"}'
+  "$HOME/.i3rc/eww/scripts/network.sh")
+(deflisten vol :initial '{"level":0,"muted":false}'
+  "$HOME/.i3rc/eww/scripts/volume.sh")
+;; Layout density *and* the bar's output name (scripts/screen.sh). `scr.mon`
+;; re-emits on every output event, so it never points at a dead monitor.
+;; The initial value mirrors screen.sh's `wide` tier, so the first frame drawn
+;; before the script's first emit has the final geometry and does not jump.
+(deflisten scr :initial '{"tier":"wide","mon":"","w":1920,"gap":6,"group":8,"item":3,"title":40,"titlepx":268,"tray":120}'
+  "$HOME/.i3rc/eww/scripts/screen.sh")
+
+;; ── Workspaces ───────────────────────────────────────────────────────────────
+;; `ws.cmd` arrives ready to run, quoted by jq's @sh in workspaces.sh —
+;; interpolating ws.name here is a shell injection into eww's onclick `sh -c`.
+(defwidget wsbtn [ws]
+  (button :class {ws.focused ? "ws focused" :
+                  ws.urgent  ? "ws urgent"  :
+                  ws.visible ? "ws visible" : "ws"}
+          :onclick {ws.cmd}
+    "${ws.label}"))
+
+;; One card of workspace buttons. Takes its list as an argument so the jq is
+;; evaluated once, not re-run per copy on every workspace event.
+(defwidget wscard [wss detached]
+  (box :class "island" :space-evenly false :spacing 2
+       :visible {arraylength(wss) > 0}
+    (label :class "wsmon" :visible {detached} :valign "start" :text "󰍹")
+    (for ws in wss
+      (wsbtn :ws ws))))
+
+;; One card per other output. The list MUST arrive as a parameter: eww 0.6.0's
+;; `for` takes an identifier, and `(for x in {jq(…)})` silently loops zero times.
+(defwidget detachedcards [wssl]
+  (box :space-evenly false
+    (for owss in wssl
+      (wscard :wss owss :detached true))))
+
+;; Thin fading divider between logical groups inside an island.
+(defwidget vsep []
+  (box :class "vsep"))
+
+;; Privacy toggle for the track title — see the player island below.
+(defvar title_hidden false)
+
+;; ── Music island ─────────────────────────────────────────────────────────────
+;; Transport + title only — queue-shaped controls (shuffle, repeat, folder) are
+;; mpd-only ideas and live in ncmpcpp ($mod+m) / $mod+Shift+m instead.
+(defwidget player_island []
+  (box :class "island player" :space-evenly false :spacing {scr.item}
+    (revealer :reveal {player.status != "none"} :transition "slideright" :duration "300ms"
+      (box :space-evenly false :spacing {scr.item}
+        (button :class "pbtn" :onclick "$HOME/.i3rc/scripts/player_ctl.sh prev" "󰒮")
+        (button :class "pbtn accent" :onclick "$HOME/.i3rc/scripts/player_ctl.sh toggle"
+          {player.status == "Playing" ? "󰏤" : "󰐊"})
+        (button :class "pbtn" :onclick "$HOME/.i3rc/scripts/player_ctl.sh next" "󰒭")
+        ;; Left click hides the title (screenshare privacy), right click notifies
+        ;; it. :width pins the slot so hiding it can't slide the transport along.
+        (button :class {title_hidden ? "ptitle hidden" : "ptitle"}
+                :width {scr.titlepx}
+                :onclick "${EWW_CMD} update title_hidden=${!title_hidden}"
+                :onrightclick "$HOME/.i3rc/scripts/player_ctl.sh show-title"
+          (label :halign "center" :text {title_hidden ? "󰈉" : player.display}))))))
+
+;; ── Status island ────────────────────────────────────────────────────────────
+;; Icon only: connected over wifi, connected over ethernet, or offline.
+(defwidget netseg []
+  (box :class "seg pad" :space-evenly false
+    (label :class {net.kind == "off" ? "icon red" : "icon blue"}
+           :text {net.kind == "wifi" ? "󰖩" : net.kind == "eth" ? "󰈀" : "󰖪"})))
+
+(defwidget volseg []
+  (eventbox :onscroll "$HOME/.i3rc/eww/scripts/volume.sh scroll {}"
+    ;; wpctl, not pactl: their default-sink notions can differ, and volume.sh
+    ;; reads the wpctl one back.
+    (button :class "seg" :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+            :onrightclick "pavucontrol &"
+      ;; No :spacing — the icon-to-value gap is `.val`'s margin in eww.scss, a
+      ;; constant on every output. Same for every icon/value pair below.
+      (box :space-evenly false
+        (label :class {vol.muted ? "icon red" : "icon green"}
+               :text {vol.muted ? "󰝟" :
+                      vol.level < 34 ? "󰕿" :
+                      vol.level < 67 ? "󰖀" : "󰕾"})
+        (label :class "val vol" :xalign 0 :text {vol.muted ? "muted" : "${vol.level}%"})))))
+
+(defwidget sysinfo []
+  (box :class "pad" :space-evenly false :spacing {scr.group}
+    (box :space-evenly false
+      (label :class "icon peach" :text "󰻠")
+      (label :class "val cpu" :xalign 0 :text "CPU ${round(EWW_CPU.avg, 1)}%"))
+    (box :space-evenly false
+      (label :class "icon yellow" :text "󰍛")
+      ;; No decimal on the total: it would push the string past .val.ram's
+      ;; reserved width on a 100G+ machine and jitter the segments after it.
+      (label :class "val ram" :xalign 0 :text "RAM ${round(EWW_RAM.used_mem / 1073741824, 1)}/${round(EWW_RAM.total_mem / 1073741824, 0)}G"))))
+
+;; The pack is not always BAT0. Resolved once here; `?.` throughout because
+;; the key can be absent (desktop) and :visible does not stop child evaluation.
+(defwidget batteryseg []
+  (batterycard :bat {EWW_BATTERY?.BAT0 ?: EWW_BATTERY?.BAT1 ?: ""}))
+
+;; Guard matches a digit pattern, not `!= ""`: with no pack the lookup is JSON
+;; null, which passes `!= ""` and rendered a literal "null%".
+(defwidget batterycard [bat]
+  (box :visible {matches("${bat?.capacity}", "^[0-9]+$")} :space-evenly false :spacing {scr.group}
+    (vsep)
+    (box :class "pad" :space-evenly false
+      (label :class {bat?.status == "Charging" || bat?.status == "Full" ? "icon green" :
+                   bat?.capacity <= 20 ? "icon red" :
+                   bat?.capacity <= 40 ? "icon peach" :
+                   bat?.capacity <= 60 ? "icon yellow" : "icon green"}
+           :text {bat?.status == "Charging" || bat?.status == "Full" ? "󰂄" :
+                  bat?.capacity <= 20 ? "󰁺" :
+                  bat?.capacity <= 40 ? "󰁼" :
+                  bat?.capacity <= 60 ? "󰁾" :
+                  bat?.capacity <= 80 ? "󰂀" : "󰁹"})
+      (label :class "val bat" :xalign 0 :text "${bat?.capacity}%"))))
+
+;; --screen scr.mon, not :monitor 0, or the popup opens on a different output
+;; than the bar. Empty --screen fails the open, hence the fallback branch.
+(defwidget clockseg []
+  (button :class "seg" :onclick {scr.mon != "" ? "${EWW_CMD} open --toggle calendar --screen ${scr.mon}"
+                                               : "${EWW_CMD} open --toggle calendar"}
+    ;; Two icon/value pairs rather than four flat labels: a flat row can only
+    ;; have one spacing, so the date/time gap and the icon/value gap were forced
+    ;; to be the same number. Nested, each pair keeps `.val`'s constant gap and
+    ;; the 8px here separates the pairs — both fixed, on every output.
+    (box :space-evenly false :spacing 8
+      (box :space-evenly false
+        (label :class "icon lavender" :text "󰃭")
+        (label :class "val" :text {formattime(EWW_TIME, "%a %d %b")}))
+      (box :space-evenly false
+        (label :class "icon lavender" :text "󰥔")
+        (label :class "val" :text {formattime(EWW_TIME, "%H:%M")})))))
+
+(defwidget status_island []
+  (box :class "island status" :space-evenly false :spacing {scr.gap}
+    ;; Leading divider: without it the island runs into the player title.
+    (vsep)
+    (netseg)
+    (vsep)
+    (volseg)
+    (vsep)
+    (sysinfo)
+    (batteryseg)
+    (vsep)
+    (clockseg)
+    ;; fixed-width slot so tray icons appearing/leaving never shift the segments
+    (box :space-evenly false :spacing {scr.group}
+      (vsep)
+      ;; Fixed spacing, not scr.item: the slot is a reserved width, so widening
+      ;; the icon gaps with the tier eats the reserve instead of the bar's slack
+      ;; and pushes the power button off the right edge once enough applets
+      ;; register. `tray` per tier sizes the slot; this keeps the icons inside it.
+      (box :class "trayslot" :width {scr.tray} :space-evenly false
+        (systray :spacing 4 :icon-size 16 :prepend-new true :halign "center" :hexpand true)))
+    (vsep)
+    (button :class "seg power" :onclick "$HOME/.i3rc/scripts/powermenu.sh &"
+      (label :class "icon red" :text "󰐥"))))
+
+;; ── Bar ──────────────────────────────────────────────────────────────────────
+;; Two neutral spacers, not a centerbox: a centerbox forces exact centring and
+;; overlaps the islands on narrow screens, while spacers collapse to zero.
+(defwidget bar []
+  (box :class "bar ${scr.tier}" :space-evenly false
+    (wscard :wss {wsmap[scr.mon] ?: []} :detached false)
+    ;; `.value`, not `.value[]`: a list of lists, one card per other output.
+    ;; to_entries keeps workspaces.sh's group_by order, so cards don't reshuffle.
+    (detachedcards
+      :wssl {jq(wsmap, "[to_entries[] | select(.key != \"${scr.mon}\") | .value]")})
+    (box :hexpand true)
+    (player_island)
+    (box :hexpand true)
+    (status_island)))
+
+;; Opened once, on the primary output: eww open bar --screen <name>
+(defwindow bar
+  :monitor 0
+  :windowtype "dock"
+  :geometry (geometry :x "0%" :y "0px" :width "100%" :height "28px" :anchor "top center")
+  :reserve (struts :side "top" :distance "28px")
+  (bar))
+
+(defwindow calendar
+  :monitor 0
+  :windowtype "dialog"
+  :stacking "fg"
+  :geometry (geometry :x "-150px" :y "48px" :anchor "top right")
+  (box :class "calbox" (calendar :class "cal")))

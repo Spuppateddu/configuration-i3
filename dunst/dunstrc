@@ -1,0 +1,79 @@
+[global]
+    # No `monitor` here: dunst only reads it when follow = none, so setting both
+    # just looked like the display was pinned when it never was.
+    follow = mouse
+    width = (180, 420)
+    # (min, max), not a bare number — the scalar form is deprecated pre-1.12
+    # syntax that warns on every start. This means grow to fit, cap at 180.
+    height = (0, 180)
+    origin = top-right
+    # (x, y), not 12x44: same pre-1.12 legacy spelling as `height` above.
+    offset = (12, 44)
+    scale = 0
+    notification_limit = 4
+
+    progress_bar = true
+    progress_bar_height = 10
+    progress_bar_frame_width = 1
+    progress_bar_min_width = 150
+    progress_bar_max_width = 380
+
+    indicate_hidden = yes
+    transparency = 0
+    separator_height = 1
+    padding = 12
+    horizontal_padding = 14
+    text_icon_padding = 10
+    frame_width = 2
+    frame_color = "#fe8019"
+    gap_size = 6
+    separator_color = frame
+    sort = yes
+
+    # Same single family as ../config.
+    font = Courier Prime 10
+    # 0 = the font's own line box; set an explicit px value if it reads cramped.
+    line_height = 0
+    markup = full
+    format = "<b>%s</b>\n%b"
+    alignment = left
+    vertical_alignment = center
+    show_age_threshold = 60
+    ellipsize = middle
+    ignore_newline = no
+    stack_duplicates = true
+    hide_duplicate_count = false
+    show_indicators = yes
+
+    icon_position = left
+    min_icon_size = 32
+    max_icon_size = 64
+    icon_theme = "Papirus-Dark, Adwaita"
+    enable_recursive_icon_lookup = true
+
+    corner_radius = 12
+    ignore_dbusclose = false
+    force_xwayland = false
+    force_xinerama = false
+
+    mouse_left_click = do_action, close_current
+    mouse_middle_click = close_all
+    mouse_right_click = close_current
+
+[urgency_low]
+    background = "#282828"
+    foreground = "#a89984"
+    frame_color = "#504945"
+    timeout = 5
+
+[urgency_normal]
+    background = "#282828"
+    foreground = "#ebdbb2"
+    frame_color = "#fe8019"
+    timeout = 7
+
+[urgency_critical]
+    background = "#282828"
+    foreground = "#fb4934"
+    frame_color = "#fb4934"
+    timeout = 0

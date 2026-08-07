@@ -1,0 +1,191 @@
+// Gruvbox Dark (Medium)
+$base:     #282828;
+$mantle:   #1d2021;
+$surface0: #3c3836;
+$surface1: #504945;
+$text:     #ebdbb2;
+$subtext:  #a89984;
+$blue:     #83a598;
+$mauve:    #d3869b;
+$green:    #b8bb26;
+$red:      #fb4934;
+$yellow:   #fabd2f;
+$peach:    #fe8019;
+// Gruvbox has no lavender — aliased to $peach so a palette change moves both.
+$lavender: $peach;
+
+* {
+  all: unset;
+  font-family: "Courier Prime";
+  // Changing size or spacing changes the cell width — re-derive CHAR100 in
+  // scripts/screen.sh and the reserved .val widths below if you touch these.
+  font-size: 11px;
+  letter-spacing: -1px;
+}
+
+window { background: transparent; }
+
+// The bar carries the background, not the groups — one surface, not detached
+// panels floating over the desktop.
+.bar {
+  background: rgba(40, 40, 40, 0.94);
+  padding: 0;
+  min-height: 28px; // the height the struts reserve
+  color: $text;
+}
+
+.island {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 2px 8px;
+  margin: 0;
+  min-height: 16px;
+  color: $text;
+}
+
+// Marks the workspaces on the other (bar-less) monitor — the only thing that
+// distinguishes that card. Small and top-aligned so it reads as a label.
+.wsmon {
+  font-size: 11px;
+  color: $blue;
+  margin-right: 4px;
+}
+
+// workspaces
+.ws {
+  padding: 0 9px;
+  border-radius: 9px;
+  color: $subtext;
+  // Named, not `all`: `all` also animated padding, and that re-lays out the
+  // whole bar every frame — on a workspace switch, the most frequent event.
+  transition: background 150ms ease, color 150ms ease;
+}
+.ws:hover   { background: $surface0; color: $text; }
+.ws.focused { background: $lavender; color: $base; }
+.ws.visible { background: $surface1; color: $text; }
+.ws.urgent  { background: $red; color: $base; }
+
+// music
+.pbtn {
+  padding: 0 5px;
+  border-radius: 8px;
+  color: $subtext;
+  font-size: 15px; // icon-only: tracks the base size +2
+  // Not font-size, though .accent changes it 15→17: animating it re-measures
+  // the text every frame. It snaps now, which suits a state marker anyway.
+  transition: background 150ms ease, color 150ms ease;
+}
+.pbtn:hover  { background: $surface0; color: $text; }
+.pbtn.accent { color: $mauve; font-size: 17px; }
+.ptitle      { color: $text; padding: 0 6px; }
+// Privacy toggle on: dimmed so it reads as deliberately-off, not as a failure.
+.ptitle.hidden { color: $subtext; font-size: 15px; }
+.ptitle:hover { color: $lavender; }
+
+// status segments
+.seg {
+  padding: 1px 4px;
+  border-radius: 9px;
+  // Only :hover changes anything here, and only the background.
+  transition: background 150ms ease;
+}
+.seg:hover { background: $surface0; }
+
+.icon { font-size: 15px; }
+
+// The icon-to-its-own-value gap is a CONSTANT, never a density tier's job.
+// It used to be the parent box's :spacing {scr.item}, which the tier picked
+// (3px wide/compact, 6px dense) — so the identical pair rendered tight on a
+// 1920 laptop and roomy on a 1366 one, and tuning either tier moved the other.
+// Owning it here means it looks the same on every output, forever; the tiers
+// still scale the gaps *between* segments (scr.gap / scr.group), which is the
+// only spacing that should react to width.
+// 7px, not 6: the global letter-spacing:-1px shaves a px off the icon glyph's
+// own advance width, so the optical gap is one less than the number here.
+.val { margin-left: 7px; }
+
+// Reserved value slots, sized for the widest possible value so changing digits
+// never shift icons or neighbouring segments. This is what keeps the bar steady.
+.val.vol     { min-width: 42px; }  // fits "muted"
+.val.cpu     { min-width: 80px; }  // fits "CPU 100.0%"
+.val.ram     { min-width: 112px; } // fits "RAM 100.2/125G" (14 chars, the worst case)
+.val.bat     { min-width: 34px; }  // fits "100%"
+.blue     { color: $blue; }
+.green    { color: $green; }
+.red      { color: $red; }
+.peach    { color: $peach; }
+.yellow   { color: $yellow; }
+.lavender { color: $lavender; }
+.dim      { color: $subtext; }
+
+.power { padding: 1px 6px; }
+
+// same horizontal padding as .seg so gaps around dividers stay even
+.pad { padding: 1px 4px; }
+
+// divider between logical groups, fading at both ends
+.vsep {
+  min-width: 1px;
+  margin: 5px 0;
+  background: linear-gradient(to bottom,
+              transparent,
+              rgba(254, 128, 25, 0.4) 30%,
+              rgba(254, 128, 25, 0.4) 70%,
+              transparent);
+}
+
+// ── Density tiers ────────────────────────────────────────────────────────────
+// Everything above is the `wide` tier. scripts/screen.sh puts `compact` or
+// `dense` on .bar for narrower outputs; re-derive widths as chars × cell width.
+
+.bar.compact {
+  .island       { padding: 2px 6px; }
+  .seg, .pad    { padding: 1px 3px; }
+  .power        { padding: 1px 5px; }
+  .ws           { padding: 0 7px; }
+  .ptitle       { padding: 0 4px; }
+
+  .val.vol      { min-width: 38px; }
+  .val.cpu      { min-width: 74px; }
+  .val.ram      { min-width: 104px; }
+  .val.bat      { min-width: 32px; }
+}
+
+// Paddings here must stay in step with scripts/screen.sh's dense tier line:
+// wspad = 2× .ws padding-x, ipad = .island padding-x, tpad = 2× .ptitle
+// padding-x, and `base` covers the rest. Change one, re-check the other.
+.bar.dense {
+  .island       { padding: 2px 6px; }
+  .seg, .pad    { padding: 1px 4px; }
+  .power        { padding: 1px 6px; }
+  .ws           { padding: 0 7px; }
+  .ptitle       { padding: 0 4px; }
+
+  // At the floor: shrink further and changing values start shifting neighbours.
+  .val.vol      { min-width: 37px; }  // "muted"
+  .val.cpu      { min-width: 74px; }  // "CPU 100.0%"
+  .val.ram      { min-width: 102px; } // "RAM 100.2/125G"
+  .val.bat      { min-width: 30px; }  // "100%"
+
+  .vsep         { margin: 6px 0; }
+}
+
+// calendar popup
+.calbox {
+  background: $base;
+  border: 2px solid $lavender;
+  border-radius: 14px;
+  padding: 10px;
+}
+.cal {
+  color: $text;
+  padding: 4px;
+
+  &:selected { color: $base; background: $lavender; border-radius: 6px; }
+  &:indeterminate { color: $surface1; }
+  &.header { color: $lavender; font-weight: bold; }
+  &.button { color: $subtext; }
+  &.button:hover { color: $text; }
+  &.highlight { color: $mauve; font-weight: bold; }
+}
