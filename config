@@ -20,6 +20,9 @@ exec_always --no-startup-id dunst -config ~/.i3rc/dunst/dunstrc
 # composites the _XROOTPMAP_ID pixmap, which only feh updates. See the script.
 exec_always --no-startup-id ~/.i3rc/scripts/set_background.sh
 exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
+# Floating desktop: sizes and centres each new window from the live workspace
+# rect. Must come after the bar, whose strut is what shrinks that rect.
+exec_always --no-startup-id ~/.i3rc/scripts/float.sh watch
 # mpDris2 is NOT started here: it runs as a systemd user service (setup.sh
 # enables it), and a second copy just races it for the D-Bus name and fails.
 
@@ -102,11 +105,16 @@ bindsym $mod+Down   focus down
 bindsym $mod+Up     focus up
 bindsym $mod+Right  focus right
 
-# ── Move ──────────────────────────────────────────────────────────────────
-bindsym $mod+Shift+$left  move left
-bindsym $mod+Shift+$down  move down
-bindsym $mod+Shift+$up    move up
-bindsym $mod+Shift+$right move right
+# ── Move / snap ───────────────────────────────────────────────────────────
+# Layout-aware, because i3 can't be: a floating window snaps to half-left /
+# standard-centred / maximised / half-right, a tiled one just moves. float.sh.
+bindsym $mod+Shift+$left  exec --no-startup-id ~/.i3rc/scripts/float.sh move left
+bindsym $mod+Shift+$down  exec --no-startup-id ~/.i3rc/scripts/float.sh move down
+bindsym $mod+Shift+$up    exec --no-startup-id ~/.i3rc/scripts/float.sh move up
+bindsym $mod+Shift+$right exec --no-startup-id ~/.i3rc/scripts/float.sh move right
+
+# The arrows never snap: on a floating window they nudge it a few pixels, which
+# is the only way left to place one off-grid from the keyboard.
 bindsym $mod+Shift+Left   move left
 bindsym $mod+Shift+Down   move down
 bindsym $mod+Shift+Up     move up
@@ -181,12 +189,28 @@ bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/resize_border.sh on
 # spawned it. It only works on floating windows, hence 'floating enable' too.
 for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, sticky enable
 
+# ── Floating desktop (the default here) ───────────────────────────────────
+# Every window floats with a real title bar you can grab — i3 as a normal DE,
+# not a tiling WM. $mod+Shift+space drops one window back into the tiling layout.
+
+# One rule, not three: a separate [floating] rule would only match on the next
+# manage pass. Centring here is the fallback for when float.sh is not running.
+for_window [class=".*"] floating enable, border normal 2, move position center
+
+# `border normal 2` above also puts back the border Alacritty drops via
+# _MOTIF_WM_HINTS. These two cover windows floated or tiled after the fact.
+default_floating_border normal 2
+default_border          pixel 2
+
+# Click to focus. Focus-follows-mouse fights overlapping windows: the pointer
+# resting over a background one steals focus from the window you are typing in.
+focus_follows_mouse no
+
+# Minimise-ish — i3 has none, the scratchpad is the closest thing. Super is
+# otherwise unbound ($mod is Alt); $mod+minus brings stashed windows back.
+bindsym Mod4+Down move scratchpad
+
 # ── Look: gaps, borders, colors (Gruvbox Dark) ────────────────────────────
-# NOT redundant with default_border: windows setting _MOTIF_WM_HINTS (Alacritty)
-# get `border none` and skip it, so this for_window puts the border back.
-for_window [class=".*"] border pixel 2
-default_border        pixel 2
-default_floating_border pixel 2
 # 'none' keeps the focused border visible even when a single window fills the screen
 hide_edge_borders none
 

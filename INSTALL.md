@@ -288,7 +288,11 @@ If the top bar doesn't appear:
 | `$mod+Shift+m` | Pick a folder → shuffle play |
 | `$mod+f` | Fullscreen |
 | `$mod+h/j/k/l` | Focus left/down/up/right |
-| `$mod+Shift+h/j/k/l` | Move window |
+| `$mod+Shift+h/l` | Floating: snap to the left/right half — tiled: move window |
+| `$mod+Shift+k/j` | Floating: maximise / standard size — tiled: move window |
+| `$mod+Shift+←↓↑→` | Move window, never snaps (nudges a floating one) |
+| `$mod+Shift+space` | Float ↔ tile the focused window |
+| `Super+Down` | Stash to the scratchpad; `$mod+minus` brings it back |
 | `$mod+1..0` | Workspace 1..10 |
 | `$mod+Shift+1..0` | Move window to workspace |
 | `$mod+r` | Resize mode |
@@ -309,6 +313,9 @@ If the top bar doesn't appear:
   `eww/eww.scss` (style); changes apply live with
   `~/.local/bin/eww --config ~/.i3rc/eww reload`.
 - **Gaps** — `gaps inner`/`gaps outer` in `config`.
+- **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
+  usable workspace, default 50/70) read by `scripts/float.sh`; see the README's
+  *Floating desktop* section, which also covers going back to plain tiling.
 - **Background color** — the colour in `scripts/set_background.sh` (`config`
   runs it via the `set_background.sh` line).
 

@@ -5,6 +5,9 @@ controls, per-monitor workspaces, calendar popup, system tray), rofi launcher,
 solid Gruvbox-dark background, picom compositing, dunst notifications, and
 mpd + ncmpcpp for offline music.
 
+**Windows float by default** — i3 runs here as a normal desktop, not a tiling
+WM. See [Floating desktop](#floating-desktop) below.
+
 ![The eww bar and a two-window tiled layout on i3](./pictures/i3_specs.png)
 
 - **Install on a new machine:** run `./setup.sh` (idempotent — also builds eww from source; the font — Courier Prime, the only one this repo names — and the cursor theme come from *best-linux-environment*). Full breakdown in [INSTALL.md](./INSTALL.md).
@@ -43,6 +46,42 @@ above — and then calls [`install.sh`](./install.sh), the thin wrapper that run
 `setup.sh` and live-reloads i3 and the eww bar afterwards. It also owns the
 font and the cursor theme, and installs the programs the keybinds assume
 (alacritty, firefox, flameshot), so there is nothing left to do by hand.
+
+## Floating desktop
+
+Every window opens **floating**, with a real draggable title bar, at half the
+screen width × 70% of its height, centred. Click-to-focus, not focus-follows-mouse.
+
+`$mod+Shift+h/j/k/l` is **layout-aware** — i3 cannot be, so
+[`scripts/float.sh`](./scripts/float.sh) decides per keypress:
+
+| | floating window | tiled window |
+|---|---|---|
+| `$mod+Shift+h` / `l` | snap to the left / right half | move it left / right |
+| `$mod+Shift+k` | maximise (fills the workspace) | move it up |
+| `$mod+Shift+j` | back to the standard size, centred | move it down |
+
+The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they nudge
+it a few pixels. `$mod+Shift+space` tiles the focused window, and `Super+Down`
+stashes it in the scratchpad — the closest thing i3 has to a minimise.
+
+Nothing is hardcoded to one screen. Every number comes from the live workspace
+rect, which i3 has already shrunk by the eww bar's strut, so the same commit is
+exact on a 3440×1440 ultrawide and a 1366 ThinkPad panel. `float.sh watch` runs
+as an `exec_always` daemon and places each new window from the `window::new`
+event; the `move position center` in `config` is only its fallback.
+
+Two knobs, both optional, exported before i3 starts:
+
+```bash
+I3RC_STD_W_PCT=50   # standard window width, % of the usable workspace
+I3RC_STD_H_PCT=70   # ...and its height
+```
+
+**To get plain tiling i3 back**, delete the `for_window [class=".*"] floating
+enable…` line and the `float.sh watch` line from [config](./config). The
+`$mod+Shift+h/j/k/l` bindings keep working: with nothing floating, `float.sh`
+always takes the `move` branch.
 
 ## Machine-specific settings
 
@@ -129,6 +168,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)
     ├── theme_lib.sh           # shared: find alacritty's config (sourced)
+    ├── float.sh               # floating desktop: places new windows, snap keys
     ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
     ├── resize_border.sh       # red focused border while in resize mode
     ├── restart_kbd.sh         # key repeat + Caps→Ctrl, re-applied on hotplug
