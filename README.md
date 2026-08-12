@@ -58,7 +58,7 @@ screen width × 70% of its height, centred. Click-to-focus, not focus-follows-mo
 | | floating window | tiled window |
 |---|---|---|
 | `$mod+Shift+h` / `l` | snap to the left / right half | move it left / right |
-| `$mod+Shift+k` | maximise (fills the workspace) | move it up |
+| `$mod+Shift+k` | grow to nearly full height, same width and column | move it up |
 | `$mod+Shift+j` | back to the standard size, centred | move it down |
 
 The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they nudge
@@ -71,11 +71,12 @@ exact on a 3440×1440 ultrawide and a 1366 ThinkPad panel. `float.sh watch` runs
 as an `exec_always` daemon and places each new window from the `window::new`
 event; the `move position center` in `config` is only its fallback.
 
-Two knobs, both optional, exported before i3 starts:
+Three knobs, all optional, exported before i3 starts:
 
 ```bash
 I3RC_STD_W_PCT=50   # standard window width, % of the usable workspace
 I3RC_STD_H_PCT=70   # ...and its height
+I3RC_VMAX_H_PCT=96  # height $mod+Shift+k grows a window to, % of the same
 ```
 
 **To get plain tiling i3 back**, delete the `for_window [class=".*"] floating

@@ -290,7 +290,7 @@ If the top bar doesn't appear:
 | `$mod+f` | Fullscreen |
 | `$mod+h/j/k/l` | Focus left/down/up/right |
 | `$mod+Shift+h/l` | Floating: snap to the left/right half — tiled: move window |
-| `$mod+Shift+k/j` | Floating: maximise / standard size — tiled: move window |
+| `$mod+Shift+k/j` | Floating: near-full height / standard size — tiled: move window |
 | `$mod+Shift+←↓↑→` | Move window, never snaps (nudges a floating one) |
 | `$mod+Shift+space` | Float ↔ tile the focused window |
 | `Super+Down` | Stash to the scratchpad; `$mod+minus` brings it back |
@@ -314,8 +314,14 @@ If the top bar doesn't appear:
   `eww/eww.scss` (style); changes apply live with
   `~/.local/bin/eww --config ~/.i3rc/eww reload`.
 - **Gaps** — `gaps inner`/`gaps outer` in `config`.
+- **Border width** — the `3` in the `for_window [class=".*"]` line and in
+  `default_floating_border`/`default_border` in `config`. It doubles as the mouse
+  resize handle, so thinner borders are harder to grab; i3 takes whole pixels
+  only. Existing windows keep the old width until reopened, or until
+  `i3-msg '[floating] border normal <n>'`.
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
-  usable workspace, default 50/70) read by `scripts/float.sh`; see the README's
+  usable workspace, default 50/70) and `I3RC_VMAX_H_PCT` (the `$mod+Shift+k`
+  height, default 96) read by `scripts/float.sh`; see the README's
   *Floating desktop* section, which also covers going back to plain tiling.
 - **Background color** — the colour in `scripts/set_background.sh` (`config`
   runs it via the `set_background.sh` line).

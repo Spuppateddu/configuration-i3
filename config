@@ -108,7 +108,7 @@ bindsym $mod+Right  focus right
 
 # ── Move / snap ───────────────────────────────────────────────────────────
 # Layout-aware, because i3 can't be: a floating window snaps to half-left /
-# standard-centred / maximised / half-right, a tiled one just moves. float.sh.
+# standard-centred / full-height / half-right, a tiled one just moves. float.sh.
 bindsym $mod+Shift+$left  exec --no-startup-id ~/.i3rc/scripts/float.sh move left
 bindsym $mod+Shift+$down  exec --no-startup-id ~/.i3rc/scripts/float.sh move down
 bindsym $mod+Shift+$up    exec --no-startup-id ~/.i3rc/scripts/float.sh move up
@@ -196,12 +196,14 @@ for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, s
 
 # One rule, not three: a separate [floating] rule would only match on the next
 # manage pass. Centring here is the fallback for when float.sh is not running.
-for_window [class=".*"] floating enable, border normal 2, move position center
+# 3px, not the more usual 2: the border *is* the mouse resize handle, and two
+# pixels of it is a target you miss more often than you hit — corners worst.
+for_window [class=".*"] floating enable, border normal 3, move position center
 
-# `border normal 2` above also puts back the border Alacritty drops via
+# `border normal 3` above also puts back the border Alacritty drops via
 # _MOTIF_WM_HINTS. These two cover windows floated or tiled after the fact.
-default_floating_border normal 2
-default_border          pixel 2
+default_floating_border normal 3
+default_border          pixel 3
 
 # Click to focus. Focus-follows-mouse fights overlapping windows: the pointer
 # resting over a background one steals focus from the window you are typing in.

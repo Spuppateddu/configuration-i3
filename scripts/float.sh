@@ -16,6 +16,10 @@ PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 STD_W_PCT=${I3RC_STD_W_PCT:-50}
 STD_H_PCT=${I3RC_STD_H_PCT:-70}
 
+# `move up`: percent of the usable workspace height a window grows to, keeping
+# its own width. Not 100, so the frame still reads as a floating window.
+VMAX_H_PCT=${I3RC_VMAX_H_PCT:-96}
+
 # Classes the daemon never resizes: their window *is* the screen, so a
 # standard-size frame breaks them outright.
 SKIP_CLASS_RE=${I3RC_FLOAT_SKIP:-'^(flameshot|i3lock)$'}
@@ -23,15 +27,17 @@ SKIP_CLASS_RE=${I3RC_FLOAT_SKIP:-'^(flameshot|i3lock)$'}
 # jq's tree walk. floating_nodes too, or every floating window is invisible here.
 JQ_DESC='def desc: recurse(.nodes[]?, .floating_nodes[]?);'
 
-# Prints "<floating-state> <x> <y> <w> <h>" for the focused window and the
-# workspace holding it. State is user_on/auto_on when floating, else anything.
+# Prints "<state> <x> <y> <w> <h> <win-x> <win-w>" for the focused window: the
+# workspace rect, then the window's own x/width — the column `move up` keeps.
 focused_state() {
     i3-msg -t get_tree | jq -r "$JQ_DESC"'
         [ desc | select(.type == "workspace")
                | select([desc | select(.focused == true)] | length > 0)
-               | { r: .rect, f: ([desc | select(.focused == true) | .floating] | first) } ]
+               | { r: .rect,
+                   f: ([desc | select(.focused == true) | .floating] | first),
+                   w: ([desc | select(.focused == true) | .rect] | first) } ]
         | first // empty
-        | "\(.f) \(.r.x) \(.r.y) \(.r.width) \(.r.height)"'
+        | "\(.f) \(.r.x) \(.r.y) \(.r.width) \(.r.height) \(.w.x) \(.w.width)"'
 }
 
 # Same rect, for a window the daemon was told about instead of the focused one:
@@ -45,14 +51,18 @@ ws_rect_of() {
         | "\(.x) \(.y) \(.width) \(.height)"'
 }
 
-# "<dir> <x> <y> <w> <h>" in, "<W> <H> <X> <Y>" out. Integer division everywhere,
-# and `w - w/2` for the right half so an odd width leaves no one-pixel gap.
+# "<dir> <x> <y> <w> <h> [<win-x> <win-w>]" in, "<W> <H> <X> <Y>" out; only `up`
+# reads the window rect. Integer division; `w - w/2` right half, so no 1px gap.
 target() {
-    local dir=$1 x=$2 y=$3 w=$4 h=$5 tw th
+    local dir=$1 x=$2 y=$3 w=$4 h=$5 wx=${6:-$2} ww=${7:-$4} tw th
     case $dir in
         left)  printf '%d %d %d %d\n' "$((w / 2))" "$h" "$x" "$y" ;;
         right) printf '%d %d %d %d\n' "$((w - w / 2))" "$h" "$((x + w / 2))" "$y" ;;
-        up)    printf '%d %d %d %d\n' "$w" "$h" "$x" "$y" ;;
+        up)
+            # Height only: the window keeps its own width and column, and stays
+            # vertically centred so the leftover margin is split evenly.
+            th=$((h * VMAX_H_PCT / 100))
+            printf '%d %d %d %d\n' "$ww" "$th" "$wx" "$((y + (h - th) / 2))" ;;
         down)
             tw=$((w * STD_W_PCT / 100)); th=$((h * STD_H_PCT / 100))
             printf '%d %d %d %d\n' "$tw" "$th" "$((x + (w - tw) / 2))" "$((y + (h - th) / 2))" ;;
@@ -69,11 +79,11 @@ apply() {
 # The window is already mapped by the time either caller runs, so `resize set`
 # means the whole frame — title bar included, no correction needed.
 cmd_move() {
-    local dir=$1 state x y w h
-    read -r state x y w h < <(focused_state) || return 0
-    [ -n "${h:-}" ] || return 0
+    local dir=$1 state x y w h wx ww
+    read -r state x y w h wx ww < <(focused_state) || return 0
+    [ -n "${ww:-}" ] || return 0
     case $state in
-        user_on|auto_on) apply con_id=__focused__ $(target "$dir" "$x" "$y" "$w" "$h") ;;
+        user_on|auto_on) apply con_id=__focused__ $(target "$dir" "$x" "$y" "$w" "$h" "$wx" "$ww") ;;
         *)               i3-msg "move $dir" >/dev/null ;;
     esac
 }
