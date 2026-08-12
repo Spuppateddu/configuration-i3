@@ -5,6 +5,8 @@ controls, per-monitor workspaces, calendar popup, system tray), rofi launcher,
 solid Gruvbox-dark background, picom compositing, dunst notifications, and
 mpd + ncmpcpp for offline music.
 
+![The eww bar and a two-window tiled layout on i3](./pictures/i3_specs.png)
+
 - **Install on a new machine:** run `./setup.sh` (idempotent — also builds eww from source; the font — Courier Prime, the only one this repo names — and the cursor theme come from *best-linux-environment*). Full breakdown in [INSTALL.md](./INSTALL.md).
 - **Main i3 config:** [config](./config)
 - **Top bar:** [eww/](./eww/) — `eww.yuck` (layout/widgets), `eww.scss` (style), `scripts/` (data sources)
@@ -25,7 +27,7 @@ Both work, and this repo is written not to care which one ran it.
 
 **On its own** — clone it **to `~/.i3rc`** and run [`setup.sh`](./setup.sh).
 The path is not a convention here: i3's config format has no way to refer to its
-own directory, so the ~15 `exec` lines in [config](./config) name `~/.i3rc`
+own directory, so the 17 `exec` lines in [config](./config) name `~/.i3rc`
 literally, and `setup.sh` refuses to run from anywhere else rather than
 half-working at runtime. Two things are deliberately *not* in this repo because
 they are shared with the terminal and the editor — the **font** (Courier Prime)
@@ -127,6 +129,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)
     ├── theme_lib.sh           # shared: find alacritty's config (sourced)
+    ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
     ├── resize_border.sh       # red focused border while in resize mode
     ├── restart_kbd.sh         # key repeat + Caps→Ctrl, re-applied on hotplug
     └── restart_xbanish.sh     # hide pointer while typing, show on mouse move
