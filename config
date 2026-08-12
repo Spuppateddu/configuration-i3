@@ -70,6 +70,7 @@ tiling_drag modifier titlebar
 bindsym $mod+Return exec alacritty
 bindsym $mod+q kill
 bindsym $mod+b exec --no-startup-id firefox --new-window
+bindsym $mod+n exec --no-startup-id firefox --private-window
 
 # App launcher (rofi drun) and window switcher.
 bindsym $mod+d   exec --no-startup-id rofi -show drun -config ~/.i3rc/rofi/config.rasi
