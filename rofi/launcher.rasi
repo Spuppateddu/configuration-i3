@@ -15,7 +15,7 @@
     transparent: #00000000;
 
     /* Same single family as ../config. */
-    font: "Courier Prime 11";
+    font: "Cascadia Code 11";
 }
 
 window {

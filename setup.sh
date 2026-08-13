@@ -168,7 +168,7 @@ else
     fi
 fi
 
-# The font (Courier Prime) and the cursor theme are cross-cutting and owned by
+# The font (Cascadia Code) and the cursor theme are cross-cutting and owned by
 # best-linux-environment (basic/50-fonts-cursor.sh), not here.
 
 # ── 2. eww bar (built from source — not packaged for Ubuntu) ──────────────

@@ -19,7 +19,7 @@ the missing work (apt packages, eww build from source, config symlinks, mpd
 user services). Re-run it anytime. `./setup.sh --dry-run` shows what would
 change without touching anything.
 
-The font (Courier Prime — the only one this repo names) and the cursor theme are
+The font (Cascadia Code — the only one this repo names) and the cursor theme are
 **not** installed by `setup.sh` — they are cross-cutting (terminal, editor, bar)
 and owned by *best-linux-environment*. Install the font by hand with §3 if you
 are using this repo standalone.
@@ -77,27 +77,27 @@ release, which the raw `apt install` above will not do.
 > That last line matters: without it `setup.sh` sees an unknown build and
 > rebuilds eww on its next run.
 
-## 3. Font — Courier Prime
+## 3. Font — Cascadia Code
 
 Every font line in this repo — `config`, `eww/eww.scss`, `rofi/*.rasi`,
 `dunst/dunstrc`, `gtk/settings.ini` — names **one family and nothing else**:
 
 ```
-Courier Prime
+Cascadia Code
 ```
 
-Courier Prime is a Courier — a 2013 redesign of the 1955 typewriter face. There
+Cascadia Code is Microsoft's programming face, open source since 2019. There
 is deliberately no second family behind it: this repo is a single-font setup, so
-whatever Courier Prime does not cover is not covered. The terminal
-(`~/.alacritty/alacritty.toml`) and Firefox lead with the same Courier Prime, so
+whatever Cascadia Code does not cover is not covered. The terminal
+(`~/.alacritty/alacritty.toml`) and Firefox lead with the same Cascadia Code, so
 the three surfaces on screen at once agree.
 
-**Why Courier Prime and not Courier New**, which this repo was briefly on: a
-Courier reads thin on screen. The two ways out are a heavier weight or a heavier
-design, and Courier New has nothing above Bold — so taking its Bold as the
-everyday face would have collapsed bold-as-emphasis everywhere (dunst's `<b>`
-summary, eww's `.header`, `<strong>` on the web). Courier Prime is the heavier
-design, at Courier's identical 0.600 em advance, and keeps a real Bold on top.
+**Why Cascadia Code:** it is monospaced (0.586 em advance), so the bar columns
+and the launcher rows still line up, and it ships **four real faces** — Regular,
+Bold, Italic, Bold Italic. That second part is what a bar needs: every place
+this repo uses bold as emphasis (dunst's `<b>` summary, eww's `.header`,
+`<strong>` on the web) gets a real Bold instead of a smeared synthetic one. Its
+x-height is tall (0.518 em), so it stays readable at the 10–11 pt used here.
 
 The font is cross-cutting and owned by **`best-linux-environment`** —
 `basic/50-fonts-cursor.sh` installs it, matching the note in this repo's
@@ -105,31 +105,33 @@ The font is cross-cutting and owned by **`best-linux-environment`** —
 standalone clone:
 
 ```bash
-# Courier Prime — upstream's own TTFs. Do NOT use apt's fonts-courier-prime:
-# that build (0+git20190115-4) labels all four faces style=Light, weight=50,
-# slant=0, so fontconfig cannot tell Bold from Regular and Pango synthesises a
-# smeared fake bold instead of using the real one.
+# Cascadia Code — the four static TTFs from upstream's release. NOT the variable
+# build (ttf/CascadiaCode.ttf): only the statics report style=Bold / style=Italic,
+# which is how alacritty.toml asks for them. NF and PL variants stay out — the
+# icons come from JetBrainsMono, which 50-fonts-cursor.sh installs.
 mkdir -p ~/.local/share/fonts
-curl -L -o /tmp/CourierPrime.zip \
-  https://github.com/quoteunquoteapps/CourierPrime/archive/refs/heads/master.zip
-unzip -oq /tmp/CourierPrime.zip -d /tmp/courierprime
-cp /tmp/courierprime/CourierPrime-*/fonts/ttf/CourierPrime-*.ttf ~/.local/share/fonts/
+curl -L -o /tmp/CascadiaCode.zip \
+  https://github.com/microsoft/cascadia-code/releases/download/v2407.24/CascadiaCode-2407.24.zip
+unzip -oqj /tmp/CascadiaCode.zip \
+  'ttf/static/CascadiaCode-Regular.ttf' 'ttf/static/CascadiaCode-Bold.ttf' \
+  'ttf/static/CascadiaCode-Italic.ttf' 'ttf/static/CascadiaCode-BoldItalic.ttf' \
+  -d ~/.local/share/fonts/
 fc-cache -fv
 ```
 
 If `50-fonts-cursor.sh` (or anything else) has written a machine-wide
 fontconfig default-family rule, make sure it carries an explicit exception for
-Courier Prime — a rule that *prepends* another family in front of every pattern
+Cascadia Code — a rule that *prepends* another family in front of every pattern
 wins over the lines above, and the desktop then renders as if they had never
-been changed. If Courier Prime refuses to show up,
+been changed. If Cascadia Code refuses to show up,
 `~/.config/fontconfig/conf.d/` is the first place to look.
 
 Verify:
 
 ```bash
-fc-match "Courier Prime"                                  # must answer Courier Prime
-# and the whole point of Courier Prime — four real faces, not one file four times:
-for s in "" :bold :italic :bold:italic; do fc-match "Courier Prime$s" file; done
+fc-match "Cascadia Code"                                  # must answer Cascadia Code
+# and the whole point of the statics — four real faces, not one file four times:
+for s in "" :bold :italic :bold:italic; do fc-match "Cascadia Code$s" file; done
 ```
 
 If a command prints nothing but the font is installed, the fontconfig cache is

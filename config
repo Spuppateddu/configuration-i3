@@ -8,8 +8,8 @@
 set $mod Mod1
 
 # ── Font ──────────────────────────────────────────────────────────────────
-# One family, everywhere: Courier Prime. Same single family in eww/rofi/dunst/gtk.
-font pango:Courier Prime 10
+# One family, everywhere: Cascadia Code. Same single family in eww/rofi/dunst/gtk.
+font pango:Cascadia Code 10
 
 # ── Autostart ─────────────────────────────────────────────────────────────
 exec --no-startup-id dex --autostart --environment i3

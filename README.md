@@ -10,7 +10,7 @@ WM. See [Floating desktop](#floating-desktop) below.
 
 ![The eww bar and a two-window tiled layout on i3](./pictures/i3_specs.png)
 
-- **Install on a new machine:** run `./setup.sh` (idempotent — also builds eww from source; the font — Courier Prime, the only one this repo names — and the cursor theme come from *best-linux-environment*). Full breakdown in [INSTALL.md](./INSTALL.md).
+- **Install on a new machine:** run `./setup.sh` (idempotent — also builds eww from source; the font — Cascadia Code, the only one this repo names — and the cursor theme come from *best-linux-environment*). Full breakdown in [INSTALL.md](./INSTALL.md).
 - **Main i3 config:** [config](./config)
 - **Top bar:** [eww/](./eww/) — `eww.yuck` (layout/widgets), `eww.scss` (style), `scripts/` (data sources)
 - **Launcher themes:** [rofi/](./rofi/)
@@ -33,7 +33,7 @@ The path is not a convention here: i3's config format has no way to refer to its
 own directory, so the 17 `exec` lines in [config](./config) name `~/.i3rc`
 literally, and `setup.sh` refuses to run from anywhere else rather than
 half-working at runtime. Two things are deliberately *not* in this repo because
-they are shared with the terminal and the editor — the **font** (Courier Prime)
+they are shared with the terminal and the editor — the **font** (Cascadia Code)
 and the **cursor theme**; install those by hand from
 [INSTALL.md §3](./INSTALL.md) when you go standalone.
 
