@@ -152,6 +152,31 @@ exec_always --no-startup-id xrandr --output eDP-1 --scale 1.25x1.25
 the panel — higher number = smaller UI. Reset with `--scale 1x1`. Reload i3 after
 editing with `$mod+Shift+c`.
 
+### The coding agent (`$mod+c`)
+
+`$mod+c` opens a terminal in your home folder running a coding agent. Which
+agent is a per-machine choice, so the shared config names none: press the key
+with nothing configured and you get a notification saying so, and no window.
+
+Name yours in the same file, as an ordinary i3 variable:
+
+```
+# ~/.i3rc/config.local
+set $agent claude
+```
+
+Any command works — `codex`, `opencode`, `claude --continue`. Nothing in the
+shared config uses that variable, so i3 just parses the line and moves on;
+[`scripts/agent.sh`](./scripts/agent.sh) is what reads it, at each keypress.
+
+It reads the file rather than taking `$agent` as an argument because i3
+substitutes variables as it parses, and `include ~/.i3rc/*.local` is the very
+last line of the config — a `set` there would arrive after the binding above it.
+So the value can't reach the `bindsym`, only a script running later can see it.
+
+The command is split on spaces and run directly, without a shell. For a pipe, a
+`&&` or an environment variable, put it in a script and name the script instead.
+
 **Font sizes are the exception you don't write by hand.** Four more git-ignored
 files carry them per machine — `05-fontsize.local` (i3), `eww/size.local.scss`,
 `rofi/size.local.rasi` and `dunst/size.local.conf`, plus `size.local.css` beside
@@ -227,6 +252,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
+    ├── agent.sh               # $mod+c: terminal running config.local's $agent
     ├── net_lib.sh             # shared: interface pick + wifi SSID (sourced)
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)

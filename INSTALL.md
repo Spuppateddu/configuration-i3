@@ -283,6 +283,7 @@ If the top bar doesn't appear:
 | `$mod+Return` | Terminal (alacritty) |
 | `$mod+b` | Browser (firefox, new window) |
 | `$mod+n` | Browser (firefox, new private window) |
+| `$mod+c` | Coding agent in a terminal — which agent is per-machine, see README |
 | `$mod+d` | App launcher (rofi) |
 | `$mod+Tab` | Window switcher (rofi) |
 | `$mod+q` | Kill focused window |
