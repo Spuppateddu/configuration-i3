@@ -263,6 +263,23 @@ busctl --user get-property org.mpris.MediaPlayer2.<name> \
     /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player CanGoNext
 ```
 
+## 6c. Coding agent (`$mod+c`)
+
+`setup.sh` creates `~/agent-desk`, the folder `$mod+c` opens a terminal in. Say
+which agent runs there — this line is the whole setup:
+
+```bash
+echo 'set $agent claude' >> ~/.i3rc/config.local   # or codex, opencode, …
+```
+
+Then `$mod+Shift+c` to reload. Without that line the key notifies you that no
+agent is configured and opens nothing.
+
+A folder of its own because these agents ask you to trust the directory they
+start in, and then read, write and run files there — answering that for `$HOME`
+covers `.ssh`, your browser profiles and every project at once. `~/agent-desk`
+is empty, so you answer once and it costs you nothing. See the README.
+
 ## 7. First launch
 
 Log out, pick **i3** at the login screen, log back in. Or if you're already
@@ -283,7 +300,7 @@ If the top bar doesn't appear:
 | `$mod+Return` | Terminal (alacritty) |
 | `$mod+b` | Browser (firefox, new window) |
 | `$mod+n` | Browser (firefox, new private window) |
-| `$mod+c` | Coding agent in a terminal — which agent is per-machine, see README |
+| `$mod+c` | Coding agent in `~/agent-desk` — which agent is per-machine, see README |
 | `$mod+d` | App launcher (rofi) |
 | `$mod+Tab` | Window switcher (rofi) |
 | `$mod+q` | Kill focused window |

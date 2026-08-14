@@ -75,8 +75,8 @@ bindsym $mod+q kill
 bindsym $mod+b exec --no-startup-id firefox --new-window
 bindsym $mod+n exec --no-startup-id firefox --private-window
 
-# Coding agent in a terminal. Which one is per-machine and unset here: name it
-# with `set $agent claude` in config.local, or the key says nobody is set up.
+# Coding agent, in ~/agent-desk so trusting its folder isn't trusting $HOME.
+# Which agent is per-machine: `set $agent claude` in config.local, else it says so.
 bindsym $mod+c exec --no-startup-id ~/.i3rc/scripts/agent.sh
 
 # App launcher (rofi drun) and window switcher.

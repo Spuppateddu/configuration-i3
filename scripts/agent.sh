@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Open a terminal in $HOME running the coding agent this machine uses.
+# Open a terminal in ~/agent-desk running the coding agent this machine uses.
 #
 # Which agent is per-machine, so it is not in the shared config. Name it with
 # one line of plain i3 syntax in ~/.i3rc/config.local:
@@ -12,6 +12,11 @@
 set -u
 
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Its own folder, not $HOME: an agent asks you to trust the directory it starts
+# in, and trusting your whole home hands it every file you own. setup.sh makes
+# it; created here too, so the key still works on a machine that skipped setup.
+DESK="$HOME/agent-desk"
 
 fail() {
     notify-send -i dialog-error "Agent" "$1"
@@ -37,7 +42,9 @@ cmd="${cmd%"${cmd##*[![:space:]]}"}"
 read -r -a argv <<<"$cmd"
 command -v "${argv[0]}" >/dev/null 2>&1 || fail "Agent not installed: ${argv[0]}"
 
+mkdir -p -- "$DESK" || fail "Cannot create the agent folder: $DESK"
+
 # --working-directory, not i3's cwd: i3 hands a spawned process whatever
 # directory it was started from, which is $HOME on a login but not after a
 # restart from a terminal sitting somewhere else.
-exec alacritty --working-directory "$HOME" -e "${argv[@]}"
+exec alacritty --working-directory "$DESK" -e "${argv[@]}"

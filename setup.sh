@@ -418,6 +418,18 @@ else
     warn "systemctl not available — start mpd by hand before ncmpcpp."
 fi
 
+# ── 6b. Agent workspace ───────────────────────────────────────────────────
+# Where $mod+c starts the coding agent. A folder of its own because an agent
+# asks you to trust the directory it opens in, and $HOME is everything you own.
+step "Creating the agent workspace"
+
+AGENT_DESK="$HOME/agent-desk"
+if [[ -d "$AGENT_DESK" ]]; then
+    skip "${AGENT_DESK/#$HOME/\~} already exists."
+else
+    run mkdir -p "$AGENT_DESK" || warn "Could not create $AGENT_DESK"
+fi
+
 # ── 7. Done ───────────────────────────────────────────────────────────────
 echo
 ok "Setup complete."

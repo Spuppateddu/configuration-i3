@@ -154,9 +154,9 @@ editing with `$mod+Shift+c`.
 
 ### The coding agent (`$mod+c`)
 
-`$mod+c` opens a terminal in your home folder running a coding agent. Which
-agent is a per-machine choice, so the shared config names none: press the key
-with nothing configured and you get a notification saying so, and no window.
+`$mod+c` opens a terminal in `~/agent-desk` running a coding agent. Which agent
+is a per-machine choice, so the shared config names none: press the key with
+nothing configured and you get a notification saying so, and no window.
 
 Name yours in the same file, as an ordinary i3 variable:
 
@@ -176,6 +176,17 @@ So the value can't reach the `bindsym`, only a script running later can see it.
 
 The command is split on spaces and run directly, without a shell. For a pipe, a
 `&&` or an environment variable, put it in a script and name the script instead.
+
+**Why a folder of its own, and not `$HOME`.** Every one of these agents asks you
+to trust the directory it starts in, and then reads, writes and runs files
+there. Point it at your home folder and that answer covers everything you own —
+`.ssh`, browser profiles, every project at once. `~/agent-desk` is empty, so
+trusting it costs nothing, and you answer that question once instead of on each
+launch. `setup.sh` creates it; `agent.sh` also creates it if it is missing.
+
+`~/agent-desk` is where you drop the thing you want looked at. Working in a real
+project is still `cd` — but then you are choosing to trust that project, which
+is the point.
 
 **Font sizes are the exception you don't write by hand.** Four more git-ignored
 files carry them per machine — `05-fontsize.local` (i3), `eww/size.local.scss`,
@@ -252,7 +263,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
-    ├── agent.sh               # $mod+c: terminal running config.local's $agent
+    ├── agent.sh               # $mod+c: ~/agent-desk terminal, config.local's $agent
     ├── net_lib.sh             # shared: interface pick + wifi SSID (sourced)
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)
