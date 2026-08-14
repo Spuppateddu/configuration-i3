@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # The floating desktop: `watch` is the daemon that sizes and centres every new
 # window; `move <dir>` snaps a floating window but plain-`move`s a tiled one.
+# `place <con_id>` runs that same placement on demand, for desktop_mode.sh.
 
 # Every number comes from the live workspace rect, which i3 already shrank by the
 # eww bar's strut — so no resolution, bar height or output name is hardcoded.
@@ -40,15 +41,15 @@ focused_state() {
         | "\(.f) \(.r.x) \(.r.y) \(.r.width) \(.r.height) \(.w.x) \(.w.width)"'
 }
 
-# Same rect, for a window the daemon was told about instead of the focused one:
-# a window can open on a workspace that is not the focused one.
-ws_rect_of() {
+# "<floating> <window-type> <x> <y> <w> <h>" for con $1: its state as it is
+# *now*, plus its workspace rect — a window can open on an unfocused workspace.
+con_state_of() {
     i3-msg -t get_tree | jq -r --argjson id "$1" "$JQ_DESC"'
         [ desc | select(.type == "workspace")
                | select([desc | select(.id == $id)] | length > 0)
-               | .rect ]
+               | { r: .rect, c: ([desc | select(.id == $id)] | first) } ]
         | first // empty
-        | "\(.x) \(.y) \(.width) \(.height)"'
+        | "\(.c.floating) \(.c.window_type // "normal") \(.r.x) \(.r.y) \(.r.width) \(.r.height)"'
 }
 
 # "<dir> <x> <y> <w> <h> [<win-x> <win-w>]" in, "<W> <H> <X> <Y>" out; only `up`
@@ -88,29 +89,40 @@ cmd_move() {
     esac
 }
 
-# One window event in. The string test comes first so that the title changes a
-# terminal emits on every command don't each cost a jq fork.
-place() {
-    local id wt floating fs class x y w h
-    case $1 in *'"change":"new"'*) ;; *) return 0 ;; esac
-    # Class is read last: it is the only field that can contain a space.
-    read -r id wt floating fs class < <(printf '%s' "$1" | jq -r '
-        select(.change == "new") | .container
-        | "\(.id) \(.window_type // "-") \(.floating // "-") \(.fullscreen_mode // 0) \(.window_properties.class // "-")"')
-    [ -n "${id:-}" ] || return 0
-    [ "$fs" = "0" ] || return 0
-    [[ $class =~ $SKIP_CLASS_RE ]] && return 0
+# Standard size for con $1 if it is a normal window, centred as-is if it is a
+# dialog. A tiled con is left alone: `resize set` there moves the split instead.
+place_con() {
+    local floating wt x y w h
+    read -r floating wt x y w h < <(con_state_of "$1") || return 0
+    [ -n "${h:-}" ] || return 0
     case $floating in user_on|auto_on) ;; *) return 0 ;; esac
 
-    read -r x y w h < <(ws_rect_of "$id") || return 0
-    [ -n "${h:-}" ] || return 0
     if [ "$wt" = "normal" ]; then
-        apply "con_id=$id" $(target down "$x" "$y" "$w" "$h")
+        apply "con_id=$1" $(target down "$x" "$y" "$w" "$h")
     else
         # Dialogs, pickers and splashes keep the size they asked for; only the
         # centring is ours, and unlike `move position center` it respects the bar.
-        i3-msg "[con_id=$id] move position center" >/dev/null
+        i3-msg "[con_id=$1] move position center" >/dev/null
     fi
+}
+
+# One window event in. The string test comes first so that the title changes a
+# terminal emits on every command don't each cost a jq fork.
+place() {
+    local id floating fs class
+    case $1 in *'"change":"new"'*) ;; *) return 0 ;; esac
+    # Class is read last: it is the only field that can contain a space.
+    read -r id floating fs class < <(printf '%s' "$1" | jq -r '
+        select(.change == "new") | .container
+        | "\(.id) \(.floating // "-") \(.fullscreen_mode // 0) \(.window_properties.class // "-")"')
+    [ -n "${id:-}" ] || return 0
+    [ "$fs" = "0" ] || return 0
+    [[ $class =~ $SKIP_CLASS_RE ]] && return 0
+    # Prefilter only: tiling mode tiles the window back a moment later, so
+    # place_con re-reads the state instead of trusting this snapshot.
+    case $floating in user_on|auto_on) ;; *) return 0 ;; esac
+
+    place_con "$id"
 }
 
 # Same pidfile dance as restart_kbd.sh: exec_always re-runs us on every i3
@@ -157,5 +169,6 @@ cmd_watch() {
 case "${1:-}" in
     watch) cmd_watch ;;
     move)  cmd_move "${2:?usage: float.sh move <left|down|up|right>}" ;;
-    *)     printf 'usage: %s watch | move <left|down|up|right>\n' "${0##*/}" >&2; exit 2 ;;
+    place) place_con "${2:?usage: float.sh place <con_id>}" ;;
+    *)     printf 'usage: %s watch | move <left|down|up|right> | place <con_id>\n' "${0##*/}" >&2; exit 2 ;;
 esac

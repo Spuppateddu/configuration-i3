@@ -15,7 +15,9 @@ font pango:Cascadia Code 10
 exec --no-startup-id dex --autostart --environment i3
 exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 exec_always --no-startup-id picom --config ~/.i3rc/picom/picom.conf
-exec_always --no-startup-id dunst -config ~/.i3rc/dunst/dunstrc
+# Second -config = this machine's font size (git-ignored, from
+# best-linux-environment's fonts.local). Later file wins; a missing one is fine.
+exec_always --no-startup-id dunst -config ~/.i3rc/dunst/dunstrc -config ~/.i3rc/dunst/size.local.conf
 # Gruvbox dark root window — no wallpaper. Uses feh (not xsetroot): picom
 # composites the _XROOTPMAP_ID pixmap, which only feh updates. See the script.
 exec_always --no-startup-id ~/.i3rc/scripts/set_background.sh
@@ -23,8 +25,8 @@ exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
 # Floating desktop: sizes and centres each new window from the live workspace
 # rect. Must come after the bar, whose strut is what shrinks that rect.
 exec_always --no-startup-id ~/.i3rc/scripts/float.sh watch
-# mpDris2 is NOT started here: it runs as a systemd user service (setup.sh
-# enables it), and a second copy just races it for the D-Bus name and fails.
+# No music daemon here: mpd.socket (systemd, user) starts mpd on the first
+# connect, so $mod+m / $mod+Shift+m are what bring it up.
 
 # Hide the mouse pointer while typing.
 exec_always --no-startup-id ~/.i3rc/scripts/restart_xbanish.sh
@@ -32,9 +34,9 @@ exec_always --no-startup-id ~/.i3rc/scripts/restart_xbanish.sh
 # Keyboard: fast repeat + Caps→Ctrl, reapplied when a keyboard is (re)attached.
 exec_always --no-startup-id ~/.i3rc/scripts/restart_kbd.sh
 
-# Drop a stale resize-mode border override left in ~/.cache by a crash —
-# otherwise the `include` at the bottom keeps every focused border red for good.
-exec_always --no-startup-id ~/.i3rc/scripts/resize_border.sh clear
+# Put back a border left thick by a crash, or by an i3 restart while the $mod+r
+# window mode was on — nothing else would ever restore it.
+exec_always --no-startup-id ~/.i3rc/scripts/window_mode.sh clear
 
 # Screensaver stays off, so still no idle lock — xss-lock only fires on suspend.
 # DPMS is a separate timer and is on: panel off after 15min. Revert with -dpms.
@@ -52,7 +54,8 @@ bindsym XF86AudioMicMute     exec --no-startup-id wpctl set-mute   @DEFAULT_AUDI
 bindsym XF86MonBrightnessUp   exec --no-startup-id brightnessctl set +5%
 bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
 
-# Media keys.
+# Media keys. Browsers only — mpd is off D-Bus since mpDris2 was dropped; drive
+# it from ncmpcpp ($mod+m) instead.
 bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
 bindsym XF86AudioNext exec --no-startup-id playerctl next
 bindsym XF86AudioPrev exec --no-startup-id playerctl previous
@@ -132,6 +135,10 @@ bindsym $mod+Shift+space floating toggle
 bindsym $mod+space focus mode_toggle
 bindsym $mod+a focus parent
 
+# Same key, whole desktop: floating desktop <-> plain tiling i3, existing
+# windows included. Reloads i3, so the bar blinks once.
+bindsym $mod+Control+space exec --no-startup-id ~/.i3rc/scripts/desktop_mode.sh toggle
+
 # ── Scratchpad ────────────────────────────────────────────────────────────
 bindsym $mod+Shift+minus move scratchpad
 bindsym $mod+minus       scratchpad show
@@ -179,11 +186,43 @@ mode "resize" {
     bindsym Up    resize shrink height 10 px or 10 ppt
     bindsym Right resize grow   width 10 px or 10 ppt
 
-    bindsym Return exec --no-startup-id ~/.i3rc/scripts/resize_border.sh off
-    bindsym Escape exec --no-startup-id ~/.i3rc/scripts/resize_border.sh off
-    bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/resize_border.sh off
+    bindsym Return exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
+    bindsym Escape exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
+    bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
 }
-bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/resize_border.sh on
+
+# ── Resize mode, floating ─────────────────────────────────────────────────
+# Same $mod+r: on a floating window window_mode.sh sends you here instead. One
+# edge per key — hjkl pushes it out, HJKL pulls the same edge back in, and
+# growing stops at the workspace, so the window never leaves the monitor.
+# i3 cannot clamp, hence a script per keypress; the arrows mirror hjkl.
+mode "resize floating" {
+    bindsym $left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
+    bindsym $down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
+    bindsym $up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow up
+    bindsym $right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow right
+
+    # The shifted keysym, not Shift+$left: i3 matches what the key produces.
+    bindsym Shift+H exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink left
+    bindsym Shift+J exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink down
+    bindsym Shift+K exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink up
+    bindsym Shift+L exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink right
+
+    bindsym Left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
+    bindsym Down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
+    bindsym Up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow up
+    bindsym Right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow right
+
+    bindsym Shift+Left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink left
+    bindsym Shift+Down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink down
+    bindsym Shift+Up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink up
+    bindsym Shift+Right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink right
+
+    bindsym Return exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
+    bindsym Escape exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
+    bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
+}
+bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/window_mode.sh on
 
 # ── Firefox Picture-in-Picture ────────────────────────────────────────────
 # 'sticky' pins the PiP player to the output instead of the workspace that
@@ -194,11 +233,16 @@ for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, s
 # Every window floats with a real title bar you can grab — i3 as a normal DE,
 # not a tiling WM. $mod+Shift+space drops one window back into the tiling layout.
 
-# One rule, not three: a separate [floating] rule would only match on the next
-# manage pass. Centring here is the fallback for when float.sh is not running.
+# The default, not the only mode: $mod+Control+space writes 90-tiling-mode.local,
+# whose rules run after this one and tile everything back. See desktop_mode.sh.
+
+# One rule, not two: a separate [floating] rule would only match on the next
+# manage pass. Placement is float.sh's alone — a `move position center` here
+# also fires on a *managed* window whenever i3 re-arms the rule (any reload,
+# then that window's next title change), which flings it back to the middle.
 # 3px, not the more usual 2: the border *is* the mouse resize handle, and two
 # pixels of it is a target you miss more often than you hit — corners worst.
-for_window [class=".*"] floating enable, border normal 3, move position center
+for_window [class=".*"] floating enable, border normal 3
 
 # `border normal 3` above also puts back the border Alacritty drops via
 # _MOTIF_WM_HINTS. These two cover windows floated or tiled after the fact.
@@ -228,10 +272,6 @@ client.unfocused        #282828   #282828   #a89984   #504945   #282828
 client.urgent           #fb4934   #fb4934   #282828   #fb4934   #fb4934
 client.placeholder      #282828   #282828   #ebdbb2   #282828   #282828
 client.background       #282828
-
-# Resize mode recolors the focused border red via this override file
-# (see scripts/resize_border.sh). Empty when not in resize mode.
-include ~/.cache/i3/focus-override.conf
 
 # ── No built-in i3bar — the eww bar is launched by launch_eww.sh ─────────
 

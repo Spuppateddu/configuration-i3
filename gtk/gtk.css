@@ -1,3 +1,9 @@
+/* This machine's font size, written from best-linux-environment's fonts.local.
+ * First, because CSS takes its imports before any rule; relative, because GTK
+ * resolves it beside the SYMLINK (~/.config/gtk-3.0, ~/.config/gtk-4.0) rather
+ * than beside this file — which is why it is not written in this repo. */
+@import url("size.local.css");
+
 /* Gruvbox Dark restyle for GTK menus (nm-applet, blueman, …).
  * Loaded as user CSS on top of the base theme, so it wins.
  * Palette matches ~/.i3rc/eww/eww.scss. */

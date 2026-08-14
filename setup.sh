@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-shot setup for the i3 rice. Idempotent — safe to re-run.
-# Installs only what's missing, links configs, enables mpd services.
+# Installs only what's missing, links configs, arms mpd's socket activation.
 #
 # Usage:   ./setup.sh
 #          ./setup.sh --dry-run       # only report what would be done
@@ -101,7 +101,7 @@ PACKAGES=(
     network-manager-gnome blueman
     pavucontrol brightnessctl playerctl pulseaudio-utils
     wireplumber
-    mpd mpc ncmpcpp mpdris2
+    mpd mpc ncmpcpp
     dex xss-lock
     # Papirus is named by rofi/dunst, Yaru by gtk/settings.ini. Yaru is only
     # missing on a minimal install, where tray menus fall back to hicolor.
@@ -242,11 +242,6 @@ INCLUDE_LINE="include \"$REPO/config\""
 
 run mkdir -p "$I3_CONFIG_DIR"
 
-# The config includes this file to recolor the focused border in resize mode
-# (scripts/resize_border.sh). Create it empty so the include never errors.
-run mkdir -p "$HOME/.cache/i3"
-[[ -f "$HOME/.cache/i3/focus-override.conf" ]] || run touch "$HOME/.cache/i3/focus-override.conf"
-
 # Detect an existing include in any spelling i3 accepts (absolute, ~, $HOME,
 # quoted or bare) — missing one appends a second and i3 parses this twice.
 # Whole lines, not substrings: a grep also matches `config.local` and comments.
@@ -325,6 +320,23 @@ link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-3.0/settings.ini"
 link "$REPO/gtk/gtk.css"          "$HOME/.config/gtk-4.0/gtk.css"
 link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-4.0/settings.ini"
 
+# ── 4b. Per-machine font sizes ────────────────────────────────────────────
+# eww.scss and gtk.css import these unconditionally, and a missing scss import is
+# a compile error — so they exist, empty, whatever writes them. The GTK ones sit
+# beside the symlinks above, which is where GTK resolves a relative @import.
+step "Checking the per-machine font-size overrides"
+for f in "$REPO/eww/size.local.scss" \
+         "$HOME/.config/gtk-3.0/size.local.css" "$HOME/.config/gtk-4.0/size.local.css"; do
+    if [[ -e "$f" ]]; then
+        skip "${f/#$HOME/\~} already there."
+    elif [[ "$DRY_RUN" == true ]]; then
+        printf '%s  would write:%s %s (empty)\n' "$C_DIM" "$C_OFF" "${f/#$HOME/\~}"
+    else
+        printf '/* Empty. Sizes come from best-linux-environment fonts.local. */\n' > "$f"
+        ok "seeded ${f/#$HOME/\~} — empty, so this repo's own sizes apply."
+    fi
+done
+
 # ── 5. Make scripts executable ────────────────────────────────────────────
 # Keep new scripts committed 755 so this stays a no-op: a 644 file gets flipped
 # here, dirties the tree with a mode change, and aborts install.sh's `git pull`.
@@ -371,42 +383,39 @@ else
     skip "Terminal theme file already written."
 fi
 
-# ── 6. mpd directories + services ─────────────────────────────────────────
+# ── 6. mpd directories + socket activation ────────────────────────────────
 step "Setting up mpd"
 
 run mkdir -p "$HOME/.local/share/mpd/playlists"
 
 if command -v systemctl >/dev/null 2>&1; then
-    # mpd user service
-    if systemctl --user is-enabled mpd.service >/dev/null 2>&1 &&
-       systemctl --user is-active  mpd.service >/dev/null 2>&1; then
-        skip "mpd.service already enabled + running."
+    # mpd.socket, not mpd.service: systemd holds the listeners and starts mpd on
+    # the first connect ($mod+m, $mod+Shift+m, any mpc call). Nothing at login.
+    if systemctl --user is-enabled mpd.socket >/dev/null 2>&1; then
+        skip "mpd.socket already enabled."
     else
-        run systemctl --user enable --now mpd.service || warn "Could not enable mpd.service"
+        run systemctl --user enable --now mpd.socket || warn "Could not enable mpd.socket"
     fi
 
-    # mpdris2 bridge (case varies between packagings)
-    enabled_any=false
-    for svc in mpdris2.service mpDris2.service; do
-        if systemctl --user list-unit-files "$svc" 2>/dev/null | grep -Fq "$svc"; then
-            if systemctl --user is-enabled "$svc" >/dev/null 2>&1; then
-                skip "$svc already enabled."
-            else
-                run systemctl --user enable --now "$svc" || true
-            fi
-            enabled_any=true
-            break
-        fi
-    done
-    $enabled_any || warn "mpdris2 service unit not found — bar music titles may not appear."
-else
-    warn "systemctl not available — start mpd and mpdris2 manually."
-fi
+    # Undoes the old always-on setup. mpd.service stays *available* — disabling
+    # only stops it at login; the socket is what starts it.
+    if systemctl --user is-enabled mpd.service >/dev/null 2>&1; then
+        run systemctl --user disable --now mpd.service || true
+    fi
 
-# First library scan (non-fatal).
-if command -v mpc >/dev/null 2>&1; then
-    step "Kicking off mpd library scan"
-    run mpc update >/dev/null 2>&1 || warn "mpc update failed — music folder may be empty or mpd not running yet."
+    # The MPRIS bridge went with the bar's music island: playerctl and the media
+    # keys now reach browsers only. `systemctl --user unmask` undoes this.
+    # Masked, not disabled — the package enables it in *global* scope
+    # (/etc/systemd/user), where a --user disable has no say.
+    for svc in mpdris2.service mpDris2.service; do
+        systemctl --user list-unit-files "$svc" 2>/dev/null | grep -Fq "$svc" || continue
+        case "$(systemctl --user is-enabled "$svc" 2>/dev/null)" in
+            masked*) skip "$svc already masked." ;;
+            *)       run systemctl --user mask --now "$svc" || true ;;
+        esac
+    done
+else
+    warn "systemctl not available — start mpd by hand before ncmpcpp."
 fi
 
 # ── 7. Done ───────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ Full setup for this i3 configuration on a fresh Ubuntu (tested on 25.10). At
 the end you get: i3 with gaps + Gruvbox colors, an eww top bar (built from
 source), rofi
 launcher, a solid Gruvbox-dark background, picom compositing, dunst notifications,
-and mpd + ncmpcpp for music with controls in the top bar.
+and mpd + ncmpcpp for music (started on demand, no controls in the top bar).
 
 ## TL;DR — one command
 
@@ -200,17 +200,26 @@ ignores `xsetroot`. `feh` updates that pixmap, so the colour actually shows.
 
 ## 6. Music (mpd + ncmpcpp)
 
-Edit `~/.i3rc/mpd/mpd.conf` if your music folder is not `~/Music`,
-then enable and start the **user** mpd service + MPRIS bridge:
+Edit `~/.i3rc/mpd/mpd.conf` if your music folder is not `~/Music`, then arm the
+**socket**, not the service:
 
 ```bash
 mkdir -p ~/.local/share/mpd/playlists
-systemctl --user enable --now mpd.service
-systemctl --user enable --now mpDris2.service   # case varies; try both:
-systemctl --user enable --now mpdris2.service || true
+systemctl --user enable --now mpd.socket
+systemctl --user disable --now mpd.service   # if an older setup enabled it
 ```
 
-First library scan:
+systemd holds the listeners (`$XDG_RUNTIME_DIR/mpd/socket` and `localhost:6600`)
+and starts mpd on the first connect — so nothing music-related runs at login, and
+`$mod+m`, `$mod+Shift+m` or any `mpc` call brings the daemon up in about a second.
+That is also why `mpd.conf` sets no `bind_to_address` / `port`: mpd would try to
+bind 6600 a second time and refuse to start.
+
+Once started, mpd stays up until logout. Stop it by hand with `systemctl --user
+stop mpd.service` — the socket stays armed and will start it again on the next
+connect.
+
+First library scan (this starts mpd):
 
 ```bash
 mpc update --wait
@@ -222,36 +231,31 @@ Controls:
 |---|---|
 | Open full TUI (random/queue/volume/etc.) | `$mod+m` |
 | Rofi folder picker → queue + shuffle + play | `$mod+Shift+m` |
-| Play / pause | Click the ▶ icon in the top bar |
-| Prev / next | Click ⏮ / ⏭ in top bar |
-| Hide / show the track name | **Click the title** — it collapses to an eye glyph |
-| What is playing (full title + album) | **Right-click** the title |
-| Media keys | XF86AudioPlay / Next / Prev (if your keyboard has them) |
+| Play / pause, prev / next, what is playing | Inside ncmpcpp (`$mod+m`) |
+| Media keys | XF86AudioPlay / Next / Prev — **browsers only**, see below |
 
-The hide toggle is there because the bar is in every screenshot and every shared
-screen, and the track name is the one thing on it that says what you are doing.
-It resets to visible when the bar restarts.
+The top bar carries no music at all: no transport buttons, no track title. The
+queue, the title and the transport all live in ncmpcpp, where the useful keys
+are: `z` = random, `r` = repeat, `c` = clear queue, `+/-` = volume, `space` =
+enqueue, `p` = pause, `>/<` = next/prev, `/` = search, `1/2/3/4` = switch panes.
 
-The bar deliberately carries no shuffle or repeat toggle and no play-a-folder
-button: those are queue-shaped controls and the queue belongs to ncmpcpp, while
-the bar also has to speak for a browser tab, which has no queue at all. Inside
-ncmpcpp the useful keys are: `z` = random, `r` = repeat, `c` = clear queue,
-`+/-` = volume, `space` = enqueue, `p` = pause, `>/<` = next/prev, `/` = search,
-`1/2/3/4` = switch panes.
+## 6b. Media keys and MPRIS
 
-## 6b. What the bar shows for a browser tab
+The media keys go through `playerctl`, which talks to MPRIS on D-Bus. mpd is not
+on D-Bus here: the bridge that put it there (`mpDris2`) went with the bar's music
+island and `setup.sh` now **masks** it. So the keys reach browsers and other MPRIS
+players, and mpd is driven from ncmpcpp.
 
-The title tracks whatever is playing, not just mpd — a YouTube tab shows up with
-its video title and channel, because Firefox publishes both over MPRIS. Playing
-media always wins over paused. When everything is paused, the bar sticks with
-whichever player was last actually playing, so pausing a video and pressing play
-again resumes *that video* rather than handing the buttons back to a paused mpd.
-Only if nothing has played yet does mpd win the tie.
+To put mpd back on the bus:
+
+```bash
+systemctl --user unmask mpDris2.service      # case varies between packagings
+systemctl --user enable --now mpDris2.service
+```
 
 Not every control reaches every player. Firefox reports `CanGoNext: false` for a
-standalone YouTube video, so ⏮/⏭ do nothing there (they work inside a playlist,
-and always for mpd). Play/pause and the title work everywhere. To check what a
-given player actually offers:
+standalone YouTube video, so next/prev do nothing there (they work inside a
+playlist). Play/pause works everywhere. To check what a given player offers:
 
 ```bash
 playerctl -l                                     # who is on the bus
@@ -295,10 +299,11 @@ If the top bar doesn't appear:
 | `$mod+Shift+k/j` | Floating: near-full height / standard size — tiled: move window |
 | `$mod+Shift+←↓↑→` | Move window, never snaps (nudges a floating one) |
 | `$mod+Shift+space` | Float ↔ tile the focused window |
+| `$mod+Control+space` | Float ↔ tile the **whole desktop**, open windows included (reloads i3) |
 | `Super+Down` | Stash to the scratchpad; `$mod+minus` brings it back |
 | `$mod+1..0` | Workspace 1..10 |
 | `$mod+Shift+1..0` | Move window to workspace |
-| `$mod+r` | Resize mode |
+| `$mod+r` | Resize mode. Floating: `hjkl` pushes that edge out, `HJKL` pulls it back in, never past the screen — tiled: i3's own resize. `Return`/`Escape` to leave; the window wears a thick frame while it lasts |
 | `$mod+Shift+c` | Reload i3 |
 | `$mod+Shift+r` | Restart i3 |
 | `$mod+Shift+e` | Exit i3 |
@@ -324,7 +329,10 @@ If the top bar doesn't appear:
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
   usable workspace, default 50/70) and `I3RC_VMAX_H_PCT` (the `$mod+Shift+k`
   height, default 96) read by `scripts/float.sh`; see the README's
-  *Floating desktop* section, which also covers going back to plain tiling.
+  *Floating desktop* section.
+- **Plain tiling i3** — `$mod+Control+space`, or `scripts/desktop_mode.sh
+  tiling`. It writes `90-tiling-mode.local` and reloads; `floating` deletes it
+  again, and `status` prints which mode is on. See the README's *Tiling mode*.
 - **Background color** — the colour in `scripts/set_background.sh` (`config`
   runs it via the `set_background.sh` line).
 

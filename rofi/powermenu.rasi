@@ -61,3 +61,7 @@ element-text {
     vertical-align:   0.5;
     horizontal-align: 0.0;
 }
+
+/* This machine's font size (git-ignored, from best-linux-environment's
+   fonts.local). Last, so it wins; rofi skips it quietly when it is absent. */
+@import "~/.i3rc/rofi/size.local.rasi"

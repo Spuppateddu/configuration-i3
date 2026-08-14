@@ -2,8 +2,6 @@
 
 ;; ── Data sources ─────────────────────────────────────────────────────────────
 (deflisten wsmap :initial "{}" "$HOME/.i3rc/eww/scripts/workspaces.sh")
-(deflisten player :initial '{"status":"none","title":"","artist":"","display":""}'
-  "$HOME/.i3rc/eww/scripts/player.sh")
 (deflisten net :initial '{"kind":"off","label":"offline"}'
   "$HOME/.i3rc/eww/scripts/network.sh")
 (deflisten vol :initial '{"level":0,"muted":false}'
@@ -12,23 +10,26 @@
 ;; re-emits on every output event, so it never points at a dead monitor.
 ;; The initial value mirrors screen.sh's `wide` tier, so the first frame drawn
 ;; before the script's first emit has the final geometry and does not jump.
-(deflisten scr :initial '{"tier":"wide","mon":"","w":1920,"gap":6,"group":8,"item":3,"title":40,"titlepx":268,"tray":120}'
+(deflisten scr :initial '{"tier":"wide","mon":"","w":1920,"gap":6,"group":8,"item":3,"tray":120}'
   "$HOME/.i3rc/eww/scripts/screen.sh")
 
 ;; ── Workspaces ───────────────────────────────────────────────────────────────
 ;; `ws.cmd` arrives ready to run, quoted by jq's @sh in workspaces.sh —
 ;; interpolating ws.name here is a shell injection into eww's onclick `sh -c`.
+;; :valign "center" is what keeps the tile square — filled, a button stretches
+;; to the island's height and the square becomes a portrait rectangle.
 (defwidget wsbtn [ws]
   (button :class {ws.focused ? "ws focused" :
                   ws.urgent  ? "ws urgent"  :
                   ws.visible ? "ws visible" : "ws"}
+          :valign "center"
           :onclick {ws.cmd}
     "${ws.label}"))
 
 ;; One card of workspace buttons. Takes its list as an argument so the jq is
 ;; evaluated once, not re-run per copy on every workspace event.
 (defwidget wscard [wss detached]
-  (box :class "island" :space-evenly false :spacing 2
+  (box :class "island" :space-evenly false :spacing 4
        :visible {arraylength(wss) > 0}
     (label :class "wsmon" :visible {detached} :valign "start" :text "󰍹")
     (for ws in wss
@@ -44,28 +45,6 @@
 ;; Thin fading divider between logical groups inside an island.
 (defwidget vsep []
   (box :class "vsep"))
-
-;; Privacy toggle for the track title — see the player island below.
-(defvar title_hidden false)
-
-;; ── Music island ─────────────────────────────────────────────────────────────
-;; Transport + title only — queue-shaped controls (shuffle, repeat, folder) are
-;; mpd-only ideas and live in ncmpcpp ($mod+m) / $mod+Shift+m instead.
-(defwidget player_island []
-  (box :class "island player" :space-evenly false :spacing {scr.item}
-    (revealer :reveal {player.status != "none"} :transition "slideright" :duration "300ms"
-      (box :space-evenly false :spacing {scr.item}
-        (button :class "pbtn" :onclick "$HOME/.i3rc/scripts/player_ctl.sh prev" "󰒮")
-        (button :class "pbtn accent" :onclick "$HOME/.i3rc/scripts/player_ctl.sh toggle"
-          {player.status == "Playing" ? "󰏤" : "󰐊"})
-        (button :class "pbtn" :onclick "$HOME/.i3rc/scripts/player_ctl.sh next" "󰒭")
-        ;; Left click hides the title (screenshare privacy), right click notifies
-        ;; it. :width pins the slot so hiding it can't slide the transport along.
-        (button :class {title_hidden ? "ptitle hidden" : "ptitle"}
-                :width {scr.titlepx}
-                :onclick "${EWW_CMD} update title_hidden=${!title_hidden}"
-                :onrightclick "$HOME/.i3rc/scripts/player_ctl.sh show-title"
-          (label :halign "center" :text {title_hidden ? "󰈉" : player.display}))))))
 
 ;; ── Status island ────────────────────────────────────────────────────────────
 ;; Icon only: connected over wifi, connected over ethernet, or offline.
@@ -141,8 +120,6 @@
 
 (defwidget status_island []
   (box :class "island status" :space-evenly false :spacing {scr.gap}
-    ;; Leading divider: without it the island runs into the player title.
-    (vsep)
     (netseg)
     (vsep)
     (volseg)
@@ -165,8 +142,8 @@
       (label :class "icon red" :text "󰐥"))))
 
 ;; ── Bar ──────────────────────────────────────────────────────────────────────
-;; Two neutral spacers, not a centerbox: a centerbox forces exact centring and
-;; overlaps the islands on narrow screens, while spacers collapse to zero.
+;; A neutral spacer, not a centerbox: workspaces stay left, status stays right,
+;; and the slack in between collapses to zero on a narrow output.
 (defwidget bar []
   (box :class "bar ${scr.tier}" :space-evenly false
     (wscard :wss {wsmap[scr.mon] ?: []} :detached false)
@@ -175,21 +152,19 @@
     (detachedcards
       :wssl {jq(wsmap, "[to_entries[] | select(.key != \"${scr.mon}\") | .value]")})
     (box :hexpand true)
-    (player_island)
-    (box :hexpand true)
     (status_island)))
 
 ;; Opened once, on the primary output: eww open bar --screen <name>
 (defwindow bar
   :monitor 0
   :windowtype "dock"
-  :geometry (geometry :x "0%" :y "0px" :width "100%" :height "28px" :anchor "top center")
-  :reserve (struts :side "top" :distance "28px")
+  :geometry (geometry :x "0%" :y "0px" :width "100%" :height "21px" :anchor "top center")
+  :reserve (struts :side "top" :distance "21px")
   (bar))
 
 (defwindow calendar
   :monitor 0
   :windowtype "dialog"
   :stacking "fg"
-  :geometry (geometry :x "-150px" :y "48px" :anchor "top right")
+  :geometry (geometry :x "-150px" :y "41px" :anchor "top right")
   (box :class "calbox" (calendar :class "cal")))

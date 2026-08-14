@@ -1,14 +1,21 @@
 # .i3rc
 
-My i3 window manager setup: Gruvbox Dark palette, eww top bar (music + volume
-controls, per-monitor workspaces, calendar popup, system tray), rofi launcher,
-solid Gruvbox-dark background, picom compositing, dunst notifications, and
+My i3 window manager setup: Gruvbox Dark palette, eww top bar (per-monitor
+workspaces, volume, calendar popup, system tray), rofi launcher, solid
+Gruvbox-dark background, picom compositing, dunst notifications, and
 mpd + ncmpcpp for offline music.
 
 **Windows float by default** — i3 runs here as a normal desktop, not a tiling
-WM. See [Floating desktop](#floating-desktop) below.
+WM. `$mod+Control+space` switches the whole desktop to plain tiling and back.
+See [Floating desktop](#floating-desktop) below.
 
-![The eww bar and a two-window tiled layout on i3](./pictures/i3_specs.png)
+Floating, the default — windows overlap, each with its own title bar:
+
+![i3 floating: an alacritty window over Firefox, under the eww bar](./pictures/i3_floating.png)
+
+Tiling, one `$mod+Control+space` away — every window takes a share of the screen:
+
+![i3 tiling: fastfetch, the temperature logger and Firefox sharing the screen](./pictures/i3_tiling.png)
 
 - **Install on a new machine:** run `./setup.sh` (idempotent — also builds eww from source; the font — Cascadia Code, the only one this repo names — and the cursor theme come from *best-linux-environment*). Full breakdown in [INSTALL.md](./INSTALL.md).
 - **Main i3 config:** [config](./config)
@@ -16,7 +23,7 @@ WM. See [Floating desktop](#floating-desktop) below.
 - **Launcher themes:** [rofi/](./rofi/)
 - **Compositor:** [picom/picom.conf](./picom/picom.conf)
 - **Notifications:** [dunst/dunstrc](./dunst/dunstrc)
-- **Music daemon:** [mpd/mpd.conf](./mpd/mpd.conf) + [ncmpcpp/config](./ncmpcpp/config)
+- **Music daemon:** [mpd/mpd.conf](./mpd/mpd.conf) + [ncmpcpp/config](./ncmpcpp/config) — started on demand by `mpd.socket`, never at login
 - **Scripts:** [scripts/](./scripts/) — bar launcher, power menu, music helpers
 
 > Bluetooth is the blueman tray icon in the bar's systray.
@@ -65,11 +72,28 @@ The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they
 it a few pixels. `$mod+Shift+space` tiles the focused window, and `Super+Down`
 stashes it in the scratchpad — the closest thing i3 has to a minimise.
 
+`$mod+r` is layout-aware the same way, through
+[`scripts/window_mode.sh`](./scripts/window_mode.sh): a tiled window gets i3's
+own resize mode, a floating one gets a mode that works **one edge at a time**.
+`h/j/k/l` pushes that edge outward, `H/J/K/L` pulls the same edge back in, and
+the opposite edge never moves — so you size a window against whichever corner
+you want it in. Growing stops dead at the usable workspace, so a floating
+window can never be sized off the monitor; shrinking always works, down to
+120×80. The focused window wears a thick frame while the mode is on. i3 cannot
+clamp a resize itself, hence a script behind each keypress.
+
 Nothing is hardcoded to one screen. Every number comes from the live workspace
 rect, which i3 has already shrunk by the eww bar's strut, so the same commit is
 exact on a 3440×1440 ultrawide and a 1366 ThinkPad panel. `float.sh watch` runs
 as an `exec_always` daemon and places each new window from the `window::new`
-event; the `move position center` in `config` is only its fallback.
+event.
+
+Placement is that daemon's alone — the `for_window` rule in `config` floats a
+new window and gives it a border, and deliberately does **not** centre it. Any
+`i3-msg reload` re-arms every `for_window` rule (i3 forgets it already ran them
+for the open windows), so each rule fires again on that window's next title
+change: a `move position center` there would fling windows you had placed by
+hand back to the middle, minutes after the reload.
 
 Three knobs, all optional, exported before i3 starts:
 
@@ -79,10 +103,27 @@ I3RC_STD_H_PCT=70   # ...and its height
 I3RC_VMAX_H_PCT=96  # height $mod+Shift+k grows a window to, % of the same
 ```
 
-**To get plain tiling i3 back**, delete the `for_window [class=".*"] floating
-enable…` line and the `float.sh watch` line from [config](./config). The
-`$mod+Shift+h/j/k/l` bindings keep working: with nothing floating, `float.sh`
-always takes the `move` branch.
+### Tiling mode
+
+`$mod+Control+space` switches the **whole desktop** — floating desktop ↔ plain
+tiling i3, open windows included, either way.
+[`scripts/desktop_mode.sh`](./scripts/desktop_mode.sh) does it with config
+rules, not a daemon: tiling mode is a generated `90-tiling-mode.local`, which
+the `include ~/.i3rc/*.local` line at the end of [config](./config) picks up, so
+its `floating disable` runs right after the catch-all that floats everything.
+Both fire while i3 is still managing the window, so nothing is ever drawn
+floating and then yanked into the layout.
+
+The file **is** the stored mode: present = tiling, gone = floating, and it
+survives a reboot. Three rules undo the tiling one for windows that must keep
+floating — anything in the scratchpad (tiling one there hides it for good),
+flameshot, and Firefox's Picture-in-Picture. The switch reloads i3, so the bar
+blinks once, and it re-places every open window: `$mod+Shift+space` still flips
+a single window inside either mode.
+
+`$mod+Shift+h/j/k/l` and `$mod+r` keep working in tiling mode — with nothing
+floating, `float.sh` and `window_mode.sh` always take their `move`/i3-resize
+branch.
 
 ## Machine-specific settings
 
@@ -111,6 +152,16 @@ exec_always --no-startup-id xrandr --output eDP-1 --scale 1.25x1.25
 the panel — higher number = smaller UI. Reset with `--scale 1x1`. Reload i3 after
 editing with `$mod+Shift+c`.
 
+**Font sizes are the exception you don't write by hand.** Four more git-ignored
+files carry them per machine — `05-fontsize.local` (i3), `eww/size.local.scss`,
+`rofi/size.local.rasi` and `dunst/size.local.conf`, plus `size.local.css` beside
+the GTK symlinks in `~/.config/gtk-{3,4}.0/`. Each is loaded last by the config
+next to it (see the comment at the foot of each), and all of them are written
+from one file: `fonts.local` in
+[best-linux-environment](https://github.com/Spuppateddu/best-linux-environment).
+Edit that, not these. `setup.sh` here keeps the two that are imported
+unconditionally present and empty, so the bar still compiles without it.
+
 ### The bar is *not* machine-specific — don't tune it per computer
 
 The bar sizes itself from the output's width, so the same commit has to look
@@ -127,10 +178,22 @@ machine is what breaks the other. Two rules keep that from happening:
   `compact` ≥1500px, `dense` below). Those set `gap`/`group` and the paddings in
   `eww.scss`'s `.bar.compact` / `.bar.dense` blocks.
 
-The music title slot is a fixed width per tier — `tw` in `screen.sh`, in
-characters. It is a target, not a leftover: raise it for a longer title panel,
-lower it for a shorter one, and the spare width goes to the spacers on either
-side. Leftover width only ever caps it, so a genuinely narrow screen still fits.
+Nothing on the bar is elastic: every segment has a reserved width, the
+workspace squares are fixed, and all the slack goes to the spacer between the
+workspaces and the status island.
+
+The bar is **21px** tall, and that number is written in three places that must
+agree: the window `:height` and the struts' `:distance` in `eww.yuck`, and
+`.bar { min-height }` in `eww.scss`. The struts one is what i3 shrinks the
+workspace by — get it wrong and windows sit under the bar, or a dead strip
+appears below it. The calendar popup's `:y` is bar height + 20.
+
+21px is the **floor**, and the thing holding it is the Nerd Font icon glyphs:
+their line box at `.icon`'s size, plus `.seg`'s 1px of vertical padding, is what
+GTK asks for — ask for less and the window comes back 21 anyway. Shrinking the
+workspace tiles, the tray's `:icon-size` or the text size moves nothing. Only a
+smaller `.icon` does, and that is `BLE_SIZE_BAR` in *best-linux-environment*'s
+`fonts.local`, not a number to hand-edit here.
 
 To check a change against another size without owning the hardware, plug a width
 into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
@@ -141,14 +204,15 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
 ~/.i3rc/
 ├── config                     # i3 main config (included from ~/.config/i3/config)
 ├── config.local               # per-machine overrides (git-ignored, optional)
+├── 90-tiling-mode.local       # desktop_mode.sh writes it while tiling mode is on
 ├── setup.sh                   # the installer (idempotent, --dry-run)
 ├── install.sh                 # thin wrapper for orchestrators → setup.sh + live reload
 ├── INSTALL.md                 # package list + step-by-step setup
 ├── eww/
-│   ├── eww.yuck               # bar layout: workspaces, music, status, calendar
+│   ├── eww.yuck               # bar layout: workspaces, status, calendar
 │   ├── eww.scss               # Gruvbox Dark styling
-│   └── scripts/               # JSON emitters: workspaces, player, network,
-│                              #   volume, screen (layout tier + the bar's output)
+│   └── scripts/               # JSON emitters: workspaces, network, volume,
+│                              #   screen (layout tier + the bar's output)
 ├── gtk/{gtk.css,settings.ini} # GTK menu theming (nm-applet, blueman tray menus)
 ├── rofi/{config,launcher,powermenu}.rasi
 ├── picom/picom.conf
@@ -162,16 +226,15 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── emit_lib.sh            # shared: JSON escape + resubscribe loop (sourced)
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
-    ├── player_ctl.sh          # MPRIS music control (mpd priority)
-    ├── player_lib.sh          # shared: active-player selection (sourced)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
     ├── net_lib.sh             # shared: interface pick + wifi SSID (sourced)
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)
     ├── theme_lib.sh           # shared: find alacritty's config (sourced)
     ├── float.sh               # floating desktop: places new windows, snap keys
+    ├── desktop_mode.sh        # $mod+Control+space: float ↔ tile the whole desktop
     ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
-    ├── resize_border.sh       # red focused border while in resize mode
+    ├── window_mode.sh         # $mod+r: move mode if floating, resize if tiled
     ├── restart_kbd.sh         # key repeat + Caps→Ctrl, re-applied on hotplug
     └── restart_xbanish.sh     # hide pointer while typing, show on mouse move
 ```
