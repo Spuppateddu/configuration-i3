@@ -321,7 +321,7 @@ If the top bar doesn't appear:
 | `Super+Down` | Stash to the scratchpad; `$mod+minus` brings it back |
 | `$mod+1..0` | Workspace 1..10 |
 | `$mod+Shift+1..0` | Move window to workspace |
-| `$mod+r` | Resize mode. Floating: `hjkl` pulls the opposite edge in (`h` shrinks the right side), `HJKL` pushes that same edge back out, never past the screen — tiled: i3's own resize. `Return`/`Escape` to leave; the window wears a thick frame while it lasts |
+| `$mod+r` | Resize mode. Floating: `hjkl` pushes that edge out, `HJKL` pulls it back in, never past the screen — tiled: i3's own resize. `Return`/`Escape` to leave; the window wears a thick frame while it lasts |
 | `$mod+Shift+c` | Reload i3 |
 | `$mod+Shift+r` | Restart i3 |
 | `$mod+Shift+e` | Exit i3 |

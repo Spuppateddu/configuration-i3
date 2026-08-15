@@ -196,21 +196,21 @@ mode "resize" {
 }
 
 # ── Resize mode, floating ─────────────────────────────────────────────────
-# Same $mod+r: on a floating window window_mode.sh sends you here instead. hjkl
-# squeezes the far edge toward the key, HJKL pushes that same edge back out and
-# stops at the workspace, so the window never leaves the monitor. i3 cannot
-# clamp, hence a script per keypress; the arrows keep the plain push-out sense.
+# Same $mod+r: on a floating window window_mode.sh sends you here instead. One
+# edge per key — hjkl pushes it out, HJKL pulls the same edge back in, and
+# growing stops at the workspace, so the window never leaves the monitor.
+# i3 cannot clamp, hence a script per keypress; the arrows mirror hjkl.
 mode "resize floating" {
-    bindsym $left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink right
-    bindsym $down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink up
-    bindsym $up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink down
-    bindsym $right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink left
+    bindsym $left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
+    bindsym $down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
+    bindsym $up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow up
+    bindsym $right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow right
 
     # The shifted keysym, not Shift+$left: i3 matches what the key produces.
-    bindsym Shift+H exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow right
-    bindsym Shift+J exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow up
-    bindsym Shift+K exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
-    bindsym Shift+L exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
+    bindsym Shift+H exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink left
+    bindsym Shift+J exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink down
+    bindsym Shift+K exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink up
+    bindsym Shift+L exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink right
 
     bindsym Left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
     bindsym Down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
