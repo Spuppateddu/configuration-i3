@@ -18,7 +18,7 @@ $lavender: $peach;
 
 * {
   all: unset;
-  font-family: "Cascadia Code";
+  font-family: "Cascadia Code NF";
   // Changing size or spacing changes the cell width — re-derive CHAR100 in
   // scripts/screen.sh and the reserved .val widths below if you touch these.
   font-size: 11px;

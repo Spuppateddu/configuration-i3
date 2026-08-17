@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# The floating desktop: `watch` is the daemon that sizes and centres every new
-# window; `move <dir>` snaps a floating window but plain-`move`s a tiled one.
-# `place <con_id>` runs that same placement on demand, for desktop_mode.sh.
+# The floating desktop: `watch` sizes and centres every new window, `move <dir>`
+# snaps a floating one, `place <con_id>` places one on demand (desktop_mode.sh).
 
 # Every number comes from the live workspace rect, which i3 already shrank by the
 # eww bar's strut — so no resolution, bar height or output name is hardcoded.
@@ -20,6 +19,10 @@ STD_H_PCT=${I3RC_STD_H_PCT:-70}
 # `move up`: percent of the usable workspace height a window grows to, keeping
 # its own width. Not 100, so the frame still reads as a floating window.
 VMAX_H_PCT=${I3RC_VMAX_H_PCT:-96}
+
+# Cascade step: a new window whose slot is taken opens this many pixels further
+# down-right. Sized off the title bar; 0 stacks every window in the middle again.
+CASCADE_PX=${I3RC_CASCADE_PX:-32}
 
 # Classes the daemon never resizes: their window *is* the screen, so a
 # standard-size frame breaks them outright.
@@ -50,6 +53,52 @@ con_state_of() {
                | { r: .rect, c: ([desc | select(.id == $id)] | first) } ]
         | first // empty
         | "\(.c.floating) \(.c.window_type // "normal") \(.r.x) \(.r.y) \(.r.width) \(.r.height)"'
+}
+
+# "<x> <y>" per floating window already on con $1's workspace, that one left out.
+# The floating con carries the frame rect, which is what `move position` sets.
+peers_of() {
+    i3-msg -t get_tree | jq -r --argjson id "$1" "$JQ_DESC"'
+        [ desc | select(.type == "workspace")
+               | select([desc | select(.id == $id)] | length > 0) ]
+        | first // empty
+        | .floating_nodes[]
+        | select([desc | select(.id == $id)] | length == 0)
+        | "\(.rect.x) \(.rect.y)"'
+}
+
+# "<con> <W> <H> <X> <Y> <ws-right> <ws-bottom>" in, a free "<X> <Y>" out: slot 0
+# is the centre, each next one a step down-right, past the edge it wraps to 0.
+cascade() {
+    local id=$1 w=$2 h=$3 x=$4 y=$5 right=$6 bottom=$7
+    local -a peer_x=() peer_y=()
+    local px py slot=0 cx cy dx dy i taken
+
+    [ "$CASCADE_PX" -gt 0 ] 2>/dev/null || { printf '%d %d\n' "$x" "$y"; return 0; }
+
+    while read -r px py; do
+        [ -n "${py:-}" ] && { peer_x+=("$px"); peer_y+=("$py"); }
+    done < <(peers_of "$id")
+
+    while :; do
+        cx=$((x + slot * CASCADE_PX)); cy=$((y + slot * CASCADE_PX))
+        if [ $((cx + w)) -gt "$right" ] || [ $((cy + h)) -gt "$bottom" ]; then
+            cx=$x; cy=$y; break
+        fi
+        taken=0
+        # Taken: a corner less than a full step away on *both* axes — so the next
+        # slot still reads free, and a window dragged off-grid blocks its own.
+        for i in ${!peer_x[@]}; do
+            dx=$((peer_x[i] - cx)); [ "$dx" -lt 0 ] && dx=$((-dx))
+            dy=$((peer_y[i] - cy)); [ "$dy" -lt 0 ] && dy=$((-dy))
+            [ "$dx" -lt "$CASCADE_PX" ] && [ "$dy" -lt "$CASCADE_PX" ] &&
+                { taken=1; break; }
+        done
+        [ "$taken" = 0 ] && break
+        slot=$((slot + 1))
+    done
+
+    printf '%d %d\n' "$cx" "$cy"
 }
 
 # "<dir> <x> <y> <w> <h> [<win-x> <win-w>]" in, "<W> <H> <X> <Y>" out; only `up`
@@ -92,13 +141,18 @@ cmd_move() {
 # Standard size for con $1 if it is a normal window, centred as-is if it is a
 # dialog. A tiled con is left alone: `resize set` there moves the split instead.
 place_con() {
-    local floating wt x y w h
+    local floating wt x y w h tw th tx ty
     read -r floating wt x y w h < <(con_state_of "$1") || return 0
     [ -n "${h:-}" ] || return 0
     case $floating in user_on|auto_on) ;; *) return 0 ;; esac
 
     if [ "$wt" = "normal" ]; then
-        apply "con_id=$1" $(target down "$x" "$y" "$w" "$h")
+        # The centred target is only where it *starts*: cascade steps it aside
+        # when a window is already sitting there.
+        read -r tw th tx ty < <(target down "$x" "$y" "$w" "$h")
+        read -r tx ty < <(cascade "$1" "$tw" "$th" "$tx" "$ty" \
+                                  "$((x + w))" "$((y + h))")
+        apply "con_id=$1" "$tw" "$th" "$tx" "$ty"
     else
         # Dialogs, pickers and splashes keep the size they asked for; only the
         # centring is ours, and unlike `move position center` it respects the bar.

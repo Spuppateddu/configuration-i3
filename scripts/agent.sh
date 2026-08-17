@@ -1,39 +1,21 @@
 #!/usr/bin/env bash
-# Open a terminal in ~/agent-desk running the coding agent this machine uses.
-#
-# Which agent is per-machine, so it is not in the shared config. Name it with
-# one line of plain i3 syntax in ~/.i3rc/config.local:
-#
-#   set $agent claude
-#
-# Any command works — `codex`, `opencode`, `claude --continue`. Nothing in the
-# shared config reads that variable, so i3 parses the line and ignores it.
+# Open a terminal running the coding agent this machine uses, in its own folder.
+# Both from config.local: `set $agent claude`, `set $agent_desk ~/agent-desk`.
 
 set -u
 
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Its own folder, not $HOME: an agent asks you to trust the directory it starts
-# in, and trusting your whole home hands it every file you own. setup.sh makes
-# it; created here too, so the key still works on a machine that skipped setup.
-DESK="$HOME/agent-desk"
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/agent_lib.sh" || exit 1
 
 fail() {
     notify-send -i dialog-error "Agent" "$1"
     exit 1
 }
 
-# Read the value here instead of letting i3 substitute $agent into the bindsym:
-# `include ~/.i3rc/*.local` is the last line of the config, and i3 substitutes
-# as it parses, so a `set` in config.local lands after every binding above it.
-# Last match wins, which is how i3 itself resolves a variable set twice.
-cmd=$(cat -- "$REPO"/*.local 2>/dev/null |
-    sed -n 's/^[[:space:]]*set[[:space:]]\+\$agent[[:space:]]\+//p' |
-    tail -n 1)
-
-# i3 accepts the value quoted or bare, and keeps the quotes as part of it.
-cmd="${cmd%"${cmd##*[![:space:]]}"}"
-[ "${#cmd}" -ge 2 ] && [ "${cmd:0:1}" = '"' ] && [ "${cmd: -1}" = '"' ] && cmd="${cmd:1:-1}"
+# Read the values here, not through i3: `include ~/.i3rc/*.local` is the config's
+# last line, and i3 substitutes as it parses — too late for the bindsym above.
+cmd=$(i3rc_local_set "$REPO" agent)
 
 [ -n "$cmd" ] || fail 'No agent configured — put `set $agent claude` in ~/.i3rc/config.local'
 
@@ -42,9 +24,13 @@ cmd="${cmd%"${cmd##*[![:space:]]}"}"
 read -r -a argv <<<"$cmd"
 command -v "${argv[0]}" >/dev/null 2>&1 || fail "Agent not installed: ${argv[0]}"
 
+# Its own folder, not $HOME: trusting the whole home hands it every file you own.
+# setup.sh makes it; made here too, so the key works on a machine that skipped it.
+DESK=$(i3rc_agent_desk "$REPO") ||
+    fail 'Agent folder must be an absolute path — fix `set $agent_desk` in ~/.i3rc/config.local'
+
 mkdir -p -- "$DESK" || fail "Cannot create the agent folder: $DESK"
 
-# --working-directory, not i3's cwd: i3 hands a spawned process whatever
-# directory it was started from, which is $HOME on a login but not after a
-# restart from a terminal sitting somewhere else.
+# --working-directory, not i3's cwd: i3 passes on whatever directory it was
+# started from — $HOME on a login, but not after a restart from a terminal.
 exec alacritty --working-directory "$DESK" -e "${argv[@]}"

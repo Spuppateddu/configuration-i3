@@ -8,8 +8,8 @@
 set $mod Mod1
 
 # ── Font ──────────────────────────────────────────────────────────────────
-# One family, everywhere: Cascadia Code. Same single family in eww/rofi/dunst/gtk.
-font pango:Cascadia Code 10
+# One family, everywhere: Cascadia Code NF. Same single family in eww/rofi/dunst/gtk.
+font pango:Cascadia Code NF 10
 
 # ── Autostart ─────────────────────────────────────────────────────────────
 exec --no-startup-id dex --autostart --environment i3
@@ -23,7 +23,7 @@ exec_always --no-startup-id dunst -config ~/.i3rc/dunst/dunstrc -config ~/.i3rc/
 exec_always --no-startup-id ~/.i3rc/scripts/set_background.sh
 exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
 # Floating desktop: sizes and centres each new window from the live workspace
-# rect. Must come after the bar, whose strut is what shrinks that rect.
+# rect, cascading it when the centre is taken. After the bar, which shrinks it.
 exec_always --no-startup-id ~/.i3rc/scripts/float.sh watch
 # No music daemon here: mpd.socket (systemd, user) starts mpd on the first
 # connect, so $mod+m / $mod+Shift+m are what bring it up.
@@ -75,8 +75,8 @@ bindsym $mod+q kill
 bindsym $mod+b exec --no-startup-id firefox --new-window
 bindsym $mod+n exec --no-startup-id firefox --private-window
 
-# Coding agent, in ~/agent-desk so trusting its folder isn't trusting $HOME.
-# Which agent is per-machine: `set $agent claude` in config.local, else it says so.
+# Coding agent, in a folder of its own so trusting it isn't trusting $HOME. Both
+# per-machine: `set $agent claude` / `set $agent_desk <path>` in config.local.
 bindsym $mod+c exec --no-startup-id ~/.i3rc/scripts/agent.sh
 
 # App launcher (rofi drun) and window switcher.

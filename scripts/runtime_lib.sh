@@ -25,6 +25,14 @@ i3rc_script_of_pid() {
     mapfile -d '' -t args < "/proc/$1/cmdline" 2>/dev/null || return 1
     [ "${#args[@]}" -gt 0 ] || return 1
     case "${args[0]##*/}" in bash|sh|dash) ;; *) return 1 ;; esac
-    I3RC_SCRIPT=${args[-1]}
+
+    # The first word that is neither the shell nor an option, NOT the last one:
+    # `float.sh watch` ends on `watch`, and two copies of a daemon stayed alive.
+    local a
+    for a in "${args[@]:1}"; do
+        case $a in -*) continue ;; esac
+        I3RC_SCRIPT=$a
+        break
+    done
     [ -n "$I3RC_SCRIPT" ]
 }

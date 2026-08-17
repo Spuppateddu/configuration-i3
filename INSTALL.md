@@ -19,7 +19,7 @@ the missing work (apt packages, eww build from source, config symlinks, mpd
 user services). Re-run it anytime. `./setup.sh --dry-run` shows what would
 change without touching anything.
 
-The font (Cascadia Code — the only one this repo names) and the cursor theme are
+The font (Cascadia Code NF — the only one this repo names) and the cursor theme are
 **not** installed by `setup.sh` — they are cross-cutting (terminal, editor, bar)
 and owned by *best-linux-environment*. Install the font by hand with §3 if you
 are using this repo standalone.
@@ -77,20 +77,24 @@ release, which the raw `apt install` above will not do.
 > That last line matters: without it `setup.sh` sees an unknown build and
 > rebuilds eww on its next run.
 
-## 3. Font — Cascadia Code
+## 3. Font — Cascadia Code NF
 
 Every font line in this repo — `config`, `eww/eww.scss`, `rofi/*.rasi`,
 `dunst/dunstrc`, `gtk/settings.ini` — names **one family and nothing else**:
 
 ```
-Cascadia Code
+Cascadia Code NF
 ```
 
-Cascadia Code is Microsoft's programming face, open source since 2019. There
-is deliberately no second family behind it: this repo is a single-font setup, so
-whatever Cascadia Code does not cover is not covered. The terminal
-(`~/.alacritty/alacritty.toml`) and Firefox lead with the same Cascadia Code, so
-the three surfaces on screen at once agree.
+Cascadia Code is Microsoft's programming face, open source since 2019, and
+**NF** is upstream's own Nerd-Font build of it: the same face, with the Nerd
+Fonts icon range patched in. There is deliberately no second family behind it —
+this repo is a single-font setup, so whatever Cascadia Code NF does not cover is
+not covered. That the icons live in the same file is what makes the single font
+possible: the bar's battery, wifi and volume glyphs (`eww/eww.yuck`) are Nerd
+Fonts Material Design codepoints, and with plain Cascadia they would be tofu.
+The terminal (`~/.alacritty/alacritty.toml`) and Firefox name the same family,
+so the three surfaces on screen at once agree.
 
 **Why Cascadia Code:** it is monospaced (0.586 em advance), so the bar columns
 and the launcher rows still line up, and it ships **four real faces** — Regular,
@@ -105,33 +109,33 @@ The font is cross-cutting and owned by **`best-linux-environment`** —
 standalone clone:
 
 ```bash
-# Cascadia Code — the four static TTFs from upstream's release. NOT the variable
-# build (ttf/CascadiaCode.ttf): only the statics report style=Bold / style=Italic,
-# which is how alacritty.toml asks for them. NF and PL variants stay out — the
-# icons come from JetBrainsMono, which 50-fonts-cursor.sh installs.
+# The four static TTFs, NOT the variable build (ttf/CascadiaCodeNF.ttf): only the
+# statics report style=Bold/Italic. NF, not plain: plain has no icons, so tofu.
 mkdir -p ~/.local/share/fonts
 curl -L -o /tmp/CascadiaCode.zip \
   https://github.com/microsoft/cascadia-code/releases/download/v2407.24/CascadiaCode-2407.24.zip
 unzip -oqj /tmp/CascadiaCode.zip \
-  'ttf/static/CascadiaCode-Regular.ttf' 'ttf/static/CascadiaCode-Bold.ttf' \
-  'ttf/static/CascadiaCode-Italic.ttf' 'ttf/static/CascadiaCode-BoldItalic.ttf' \
+  'ttf/static/CascadiaCodeNF-Regular.ttf' 'ttf/static/CascadiaCodeNF-Bold.ttf' \
+  'ttf/static/CascadiaCodeNF-Italic.ttf' 'ttf/static/CascadiaCodeNF-BoldItalic.ttf' \
   -d ~/.local/share/fonts/
 fc-cache -fv
 ```
 
 If `50-fonts-cursor.sh` (or anything else) has written a machine-wide
 fontconfig default-family rule, make sure it carries an explicit exception for
-Cascadia Code — a rule that *prepends* another family in front of every pattern
-wins over the lines above, and the desktop then renders as if they had never
-been changed. If Cascadia Code refuses to show up,
+Cascadia Code NF — a rule that *prepends* another family in front of every
+pattern wins over the lines above, and the desktop then renders as if they had
+never been changed. If Cascadia Code NF refuses to show up,
 `~/.config/fontconfig/conf.d/` is the first place to look.
 
 Verify:
 
 ```bash
-fc-match "Cascadia Code"                                  # must answer Cascadia Code
+fc-match "Cascadia Code NF"                            # must answer Cascadia Code NF
 # and the whole point of the statics — four real faces, not one file four times:
-for s in "" :bold :italic :bold:italic; do fc-match "Cascadia Code$s" file; done
+for s in "" :bold :italic :bold:italic; do fc-match "Cascadia Code NF$s" file; done
+# the icon range the bar needs — must NOT print a different family:
+fc-match "Cascadia Code NF:charset=f0079"              # 󰁹 battery
 ```
 
 If a command prints nothing but the font is installed, the fontconfig cache is
@@ -265,19 +269,29 @@ busctl --user get-property org.mpris.MediaPlayer2.<name> \
 
 ## 6c. Coding agent (`$mod+c`)
 
-`setup.sh` creates `~/agent-desk`, the folder `$mod+c` opens a terminal in. Say
-which agent runs there — this line is the whole setup:
+`setup.sh` creates the folder `$mod+c` opens a terminal in — `~/agent-desk`
+unless you say otherwise. Say which agent runs there; this line is the whole
+setup:
 
 ```bash
 echo 'set $agent claude' >> ~/.i3rc/config.local   # or codex, opencode, …
 ```
 
-Then `$mod+Shift+c` to reload. Without that line the key notifies you that no
-agent is configured and opens nothing.
+To put the folder somewhere else, add a second line and re-run `./setup.sh` so
+that one gets created:
+
+```bash
+echo 'set $agent_desk ~/work/desk' >> ~/.i3rc/config.local
+```
+
+The path must be absolute; `~` and `$HOME` are expanded for you.
+
+Then `$mod+Shift+c` to reload. Without the `$agent` line the key notifies you
+that no agent is configured and opens nothing.
 
 A folder of its own because these agents ask you to trust the directory they
 start in, and then read, write and run files there — answering that for `$HOME`
-covers `.ssh`, your browser profiles and every project at once. `~/agent-desk`
+covers `.ssh`, your browser profiles and every project at once. The desk folder
 is empty, so you answer once and it costs you nothing. See the README.
 
 ## 7. First launch
@@ -300,7 +314,7 @@ If the top bar doesn't appear:
 | `$mod+Return` | Terminal (alacritty) |
 | `$mod+b` | Browser (firefox, new window) |
 | `$mod+n` | Browser (firefox, new private window) |
-| `$mod+c` | Coding agent in `~/agent-desk` — which agent is per-machine, see README |
+| `$mod+c` | Coding agent in its own folder — agent and folder are per-machine, see README |
 | `$mod+d` | App launcher (rofi) |
 | `$mod+Tab` | Window switcher (rofi) |
 | `$mod+q` | Kill focused window |
@@ -348,6 +362,9 @@ If the top bar doesn't appear:
   usable workspace, default 50/70) and `I3RC_VMAX_H_PCT` (the `$mod+Shift+k`
   height, default 96) read by `scripts/float.sh`; see the README's
   *Floating desktop* section.
+- **New-window cascade** — `I3RC_CASCADE_PX` (pixels a new window steps
+  down-right when its spot is taken, default 32; `0` stacks everything in the
+  centre, as before), also read by `scripts/float.sh`.
 - **Plain tiling i3** — `$mod+Control+space`, or `scripts/desktop_mode.sh
   tiling`. It writes `90-tiling-mode.local` and reloads; `floating` deletes it
   again, and `status` prints which mode is on. See the README's *Tiling mode*.

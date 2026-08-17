@@ -31,7 +31,7 @@
     sort = yes
 
     # Same single family as ../config.
-    font = Cascadia Code 10
+    font = Cascadia Code NF 10
     # 0 = the font's own line box; set an explicit px value if it reads cramped.
     line_height = 0
     markup = full

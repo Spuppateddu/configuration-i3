@@ -168,7 +168,7 @@ else
     fi
 fi
 
-# The font (Cascadia Code) and the cursor theme are cross-cutting and owned by
+# The font (Cascadia Code NF) and the cursor theme are cross-cutting and owned by
 # best-linux-environment (basic/50-fonts-cursor.sh), not here.
 
 # ── 2. eww bar (built from source — not packaged for Ubuntu) ──────────────
@@ -423,11 +423,18 @@ fi
 # asks you to trust the directory it opens in, and $HOME is everything you own.
 step "Creating the agent workspace"
 
-AGENT_DESK="$HOME/agent-desk"
-if [[ -d "$AGENT_DESK" ]]; then
-    skip "${AGENT_DESK/#$HOME/\~} already exists."
+source "$REPO/scripts/agent_lib.sh"   # i3rc_agent_desk
+
+# config.local's `set $agent_desk`, or ~/agent-desk. Same reader agent.sh uses,
+# so the folder made here is the one the key opens.
+if AGENT_DESK="$(i3rc_agent_desk "$REPO")"; then
+    if [[ -d "$AGENT_DESK" ]]; then
+        skip "${AGENT_DESK/#$HOME/\~} already exists."
+    else
+        run mkdir -p "$AGENT_DESK" || warn "Could not create $AGENT_DESK"
+    fi
 else
-    run mkdir -p "$AGENT_DESK" || warn "Could not create $AGENT_DESK"
+    warn "\$agent_desk in config.local is not an absolute path — no folder made."
 fi
 
 # ── 7. Done ───────────────────────────────────────────────────────────────

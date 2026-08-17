@@ -17,7 +17,7 @@ Tiling, one `$mod+Control+space` away — every window takes a share of the scre
 
 ![i3 tiling: fastfetch, the temperature logger and Firefox sharing the screen](./pictures/i3_tiling.png)
 
-- **Install on a new machine:** run `./setup.sh` (idempotent — also builds eww from source; the font — Cascadia Code, the only one this repo names — and the cursor theme come from *best-linux-environment*). Full breakdown in [INSTALL.md](./INSTALL.md).
+- **Install on a new machine:** run `./setup.sh` (idempotent — also builds eww from source; the font — Cascadia Code NF, the only one this repo names — and the cursor theme come from *best-linux-environment*). Full breakdown in [INSTALL.md](./INSTALL.md).
 - **Main i3 config:** [config](./config)
 - **Top bar:** [eww/](./eww/) — `eww.yuck` (layout/widgets), `eww.scss` (style), `scripts/` (data sources)
 - **Launcher themes:** [rofi/](./rofi/)
@@ -40,7 +40,7 @@ The path is not a convention here: i3's config format has no way to refer to its
 own directory, so the 17 `exec` lines in [config](./config) name `~/.i3rc`
 literally, and `setup.sh` refuses to run from anywhere else rather than
 half-working at runtime. Two things are deliberately *not* in this repo because
-they are shared with the terminal and the editor — the **font** (Cascadia Code)
+they are shared with the terminal and the editor — the **font** (Cascadia Code NF)
 and the **cursor theme**; install those by hand from
 [INSTALL.md §3](./INSTALL.md) when you go standalone.
 
@@ -58,6 +58,13 @@ font and the cursor theme, and installs the programs the keybinds assume
 
 Every window opens **floating**, with a real draggable title bar, at half the
 screen width × 70% of its height, centred. Click-to-focus, not focus-follows-mouse.
+
+New windows **cascade** instead of piling up: if a window is already sitting on
+the centre spot, the next one opens 32px further down-right, then 64px, and so
+on, so you can always see the title bar of the one behind and grab it. Close a
+window and its spot is free again — the next one goes back there. When no
+stepped spot is left on the screen the cascade wraps to the centre and stacks,
+which is what it used to do for every window.
 
 `$mod+Shift+h/j/k/l` is **layout-aware** — i3 cannot be, so
 [`scripts/float.sh`](./scripts/float.sh) decides per keypress:
@@ -95,12 +102,13 @@ for the open windows), so each rule fires again on that window's next title
 change: a `move position center` there would fling windows you had placed by
 hand back to the middle, minutes after the reload.
 
-Three knobs, all optional, exported before i3 starts:
+Four knobs, all optional, exported before i3 starts:
 
 ```bash
 I3RC_STD_W_PCT=50   # standard window width, % of the usable workspace
 I3RC_STD_H_PCT=70   # ...and its height
 I3RC_VMAX_H_PCT=96  # height $mod+Shift+k grows a window to, % of the same
+I3RC_CASCADE_PX=32  # cascade step for a new window on a taken spot; 0 = off
 ```
 
 ### Tiling mode
@@ -154,20 +162,26 @@ editing with `$mod+Shift+c`.
 
 ### The coding agent (`$mod+c`)
 
-`$mod+c` opens a terminal in `~/agent-desk` running a coding agent. Which agent
-is a per-machine choice, so the shared config names none: press the key with
-nothing configured and you get a notification saying so, and no window.
+`$mod+c` opens a terminal in a folder of its own running a coding agent. Which
+agent is a per-machine choice, so the shared config names none: press the key
+with nothing configured and you get a notification saying so, and no window.
 
 Name yours in the same file, as an ordinary i3 variable:
 
 ```
 # ~/.i3rc/config.local
 set $agent claude
+set $agent_desk ~/agent-desk        # optional — this is the default
 ```
 
-Any command works — `codex`, `opencode`, `claude --continue`. Nothing in the
-shared config uses that variable, so i3 just parses the line and moves on;
-[`scripts/agent.sh`](./scripts/agent.sh) is what reads it, at each keypress.
+Any command works — `codex`, `opencode`, `claude --continue`. `$agent_desk` is
+the folder the terminal opens in; leave it out and it's `~/agent-desk`. A
+leading `~` or `$HOME` is expanded, and the path has to be absolute — i3 spawns
+from wherever it was started, so a relative one would move between logins.
+
+Nothing in the shared config uses either variable, so i3 just parses the lines
+and moves on; [`scripts/agent.sh`](./scripts/agent.sh) is what reads them, at
+each keypress.
 
 It reads the file rather than taking `$agent` as an argument because i3
 substitutes variables as it parses, and `include ~/.i3rc/*.local` is the very
@@ -180,11 +194,12 @@ The command is split on spaces and run directly, without a shell. For a pipe, a
 **Why a folder of its own, and not `$HOME`.** Every one of these agents asks you
 to trust the directory it starts in, and then reads, writes and runs files
 there. Point it at your home folder and that answer covers everything you own —
-`.ssh`, browser profiles, every project at once. `~/agent-desk` is empty, so
+`.ssh`, browser profiles, every project at once. The desk folder is empty, so
 trusting it costs nothing, and you answer that question once instead of on each
 launch. `setup.sh` creates it; `agent.sh` also creates it if it is missing.
+Both read `$agent_desk` the same way, so moving it moves both.
 
-`~/agent-desk` is where you drop the thing you want looked at. Working in a real
+That folder is where you drop the thing you want looked at. Working in a real
 project is still `cd` — but then you are choosing to trust that project, which
 is the point.
 
@@ -263,7 +278,8 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
-    ├── agent.sh               # $mod+c: ~/agent-desk terminal, config.local's $agent
+    ├── agent.sh               # $mod+c: agent terminal, config.local's $agent
+    ├── agent_lib.sh           # shared: reads $agent / $agent_desk (sourced)
     ├── net_lib.sh             # shared: interface pick + wifi SSID (sourced)
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)

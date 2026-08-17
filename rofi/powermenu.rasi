@@ -7,7 +7,7 @@
     lavender: #fe8019;
     blue:     #83a598;
     /* Same single family as ../config. */
-    font: "Cascadia Code 11";
+    font: "Cascadia Code NF 11";
 }
 
 window {
