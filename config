@@ -14,6 +14,11 @@ font pango:Cascadia Code NF 10
 # ── Autostart ─────────────────────────────────────────────────────────────
 exec --no-startup-id dex --autostart --environment i3
 exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
+# Refresh rates. The ultrawide's EDID marks 60Hz as preferred, so X picks that
+# on its own and the 100Hz mode has to be asked for by name; DP-4 already comes
+# up at its 144Hz preferred. Positions are pinned so the pair can't reshuffle.
+exec_always --no-startup-id xrandr --output DP-4 --primary --mode 1920x1080 --rate 144 --pos 0x0 --output DP-2 --mode 3440x1440 --rate 100 --pos 1920x0
+
 exec_always --no-startup-id picom --config ~/.i3rc/picom/picom.conf
 # Second -config = this machine's font size (git-ignored, from
 # best-linux-environment's fonts.local). Later file wins; a missing one is fine.
@@ -39,8 +44,9 @@ exec_always --no-startup-id ~/.i3rc/scripts/restart_kbd.sh
 exec_always --no-startup-id ~/.i3rc/scripts/window_mode.sh clear
 
 # Screensaver stays off, so still no idle lock — xss-lock only fires on suspend.
-# DPMS is a separate timer and is on: panel off after 15min. Revert with -dpms.
-exec_always --no-startup-id xset s off s noblank +dpms dpms 0 0 900
+# DPMS off after 50min (-dpms reverts); idle-poweroff kills the machine 10min
+# later, so a dark screen is also the warning that it is about to go.
+exec_always --no-startup-id xset s off s noblank +dpms dpms 0 0 3000
 
 # ── Audio keys (PipeWire via wpctl) ───────────────────────────────────────
 # `-l 1.5` = 50% software boost past unity (ALSA is already at 0.00dB); it clips
