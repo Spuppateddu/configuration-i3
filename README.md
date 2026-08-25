@@ -81,13 +81,23 @@ stashes it in the scratchpad — the closest thing i3 has to a minimise.
 
 `$mod+r` is layout-aware the same way, through
 [`scripts/window_mode.sh`](./scripts/window_mode.sh): a tiled window gets i3's
-own resize mode, a floating one gets a mode that works **one edge at a time**.
-`h/j/k/l` pushes that edge outward, `H/J/K/L` pulls the same edge back in, and
-the opposite edge never moves — so you size a window against whichever corner
-you want it in. Growing stops dead at the usable workspace, so a floating
-window can never be sized off the monitor; shrinking always works, down to
-120×80. The focused window wears a thick frame while the mode is on. i3 cannot
-clamp a resize itself, hence a script behind each keypress.
+own resize mode, a floating one gets a mode that sizes **one edge at a time**
+and moves the window with the arrow keys.
+
+| | floating window |
+|---|---|
+| `h/j/k/l` | push that edge outward |
+| `H/J/K/L` | pull the same edge back in |
+| `←↓↑→` | move the window, size unchanged |
+| `Return` / `Escape` / `$mod+r` | leave the mode |
+
+Sizing never touches the opposite edge, so you size a window against whichever
+corner you want it in. Growing stops dead at the usable workspace and a move
+stops flush against it, so a floating window can never end up off the monitor;
+shrinking always works, down to 120×80. That makes the whole window keyboard-
+only: size it with `hjkl`, then place it with the arrows. The focused window
+wears a thick frame while the mode is on. i3 cannot clamp a resize or a move
+itself, hence a script behind each keypress.
 
 Nothing is hardcoded to one screen. Every number comes from the live workspace
 rect, which i3 has already shrunk by the eww bar's strut, so the same commit is
@@ -287,7 +297,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── float.sh               # floating desktop: places new windows, snap keys
     ├── desktop_mode.sh        # $mod+Control+space: float ↔ tile the whole desktop
     ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
-    ├── window_mode.sh         # $mod+r: move mode if floating, resize if tiled
+    ├── window_mode.sh         # $mod+r: resize+move if floating, resize if tiled
     ├── restart_kbd.sh         # key repeat + Caps→Ctrl, re-applied on hotplug
     └── restart_xbanish.sh     # hide pointer while typing, show on mouse move
 ```

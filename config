@@ -203,9 +203,11 @@ mode "resize" {
 
 # ── Resize mode, floating ─────────────────────────────────────────────────
 # Same $mod+r: on a floating window window_mode.sh sends you here instead. One
-# edge per key — hjkl pushes it out, HJKL pulls the same edge back in, and
-# growing stops at the workspace, so the window never leaves the monitor.
-# i3 cannot clamp, hence a script per keypress; the arrows mirror hjkl.
+# edge per key — hjkl pushes it out, HJKL pulls the same edge back in — and the
+# arrows move the whole window, size untouched. Both stop at the workspace, so
+# the window never leaves the monitor. i3 cannot clamp, hence a script per
+# keypress. The whole window is keyboard-reachable here: size with hjkl, place
+# it with the arrows, Return to leave.
 mode "resize floating" {
     bindsym $left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
     bindsym $down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
@@ -218,15 +220,12 @@ mode "resize floating" {
     bindsym Shift+K exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink up
     bindsym Shift+L exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink right
 
-    bindsym Left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
-    bindsym Down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
-    bindsym Up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow up
-    bindsym Right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow right
-
-    bindsym Shift+Left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink left
-    bindsym Shift+Down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink down
-    bindsym Shift+Up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink up
-    bindsym Shift+Right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink right
+    # The arrows move instead of resizing — they used to repeat hjkl, which
+    # left half the keyboard doing nothing.
+    bindsym Left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move left
+    bindsym Down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move down
+    bindsym Up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move up
+    bindsym Right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move right
 
     bindsym Return exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
     bindsym Escape exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off

@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# The $mod+r window mode: resize a floating window edge by edge, resize a tiled
-# one the way i3 does. hjkl pushes an edge out, HJKL pulls the same edge in.
+# The $mod+r window mode: resize and move a floating window, resize a tiled one
+# the way i3 does. hjkl pushes an edge out, HJKL pulls the same edge in, and the
+# arrow keys move the whole window without changing its size.
 #
-# Growing stops at the usable workspace — the rect i3 has already shrunk by the
-# bar's strut — so a floating window can never grow off the monitor. Shrinking
-# is never blocked, down to MIN_W x MIN_H.
+# Growing and moving stop at the usable workspace — the rect i3 has already
+# shrunk by the bar's strut — so a floating window can never end up off the
+# monitor. Shrinking is never blocked, down to MIN_W x MIN_H.
 #
 # Never reloads i3. A reload re-arms every `for_window` rule — i3 forgets it
 # already ran them — so the catch-all one re-floats each window at its next
 # title change. Hence a border set at runtime as the mode cue, not a recoloured
 # one, which i3 can only change by re-reading its config.
-#   on -> pick the mode + thicken      |  off -> restore + leave
-#   grow|shrink <dir> -> one edge step |  clear -> at i3 start
+#   on -> pick the mode + thicken           |  off -> restore + leave
+#   grow|shrink <dir> -> one edge step      |  clear -> at i3 start
+#   move <dir> -> one step, size unchanged
 set -eu
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/runtime_lib.sh" || exit 1
@@ -83,9 +85,10 @@ restore() {
     esac
 }
 
-# One edge step. $1 grow|shrink, $2 left|right|up|down. Each case moves exactly
-# one edge; the opposite one only follows when the frame hits its minimum.
-edge_step() {
+# One step. $1 grow|shrink|move, $2 left|right|up|down. grow and shrink move
+# exactly one edge — the opposite one only follows when the frame hits its
+# minimum; move carries both edges and keeps the size.
+step() {
     local how=$1 dir=$2 id wx wy ww wh x y w h nx ny nw nh
     id=$(mode_target); [ -n "$id" ] || return 0
     read -r wx wy ww wh x y w h < <(frame_of "$id") || return 0
@@ -105,16 +108,31 @@ edge_step() {
         "shrink up")    nh=$(( h - STEP_PX < MIN_H ? MIN_H : h - STEP_PX )); ny=$(( y + h - nh )) ;;
         "shrink right") nw=$(( w - STEP_PX < MIN_W ? MIN_W : w - STEP_PX )) ;;
         "shrink down")  nh=$(( h - STEP_PX < MIN_H ? MIN_H : h - STEP_PX )) ;;
-        *) echo "usage: ${0##*/} grow|shrink left|right|up|down" >&2; exit 2 ;;
+        # Moving keeps the size and clamps on the workspace, so the window
+        # stops flush against the screen edge instead of walking off it. The
+        # second clamp is for a window wider or taller than the workspace: it
+        # pins to the top-left corner rather than jumping backwards.
+        "move left")   nx=$(( x - STEP_PX < wx ? wx : x - STEP_PX )) ;;
+        "move up")     ny=$(( y - STEP_PX < wy ? wy : y - STEP_PX )) ;;
+        "move right")  nx=$(( x + STEP_PX + w > wx + ww ? wx + ww - w : x + STEP_PX ))
+                       nx=$(( nx < wx ? wx : nx )) ;;
+        "move down")   ny=$(( y + STEP_PX + h > wy + wh ? wy + wh - h : y + STEP_PX ))
+                       ny=$(( ny < wy ? wy : ny )) ;;
+        *) echo "usage: ${0##*/} grow|shrink|move left|right|up|down" >&2; exit 2 ;;
     esac
 
     # Already against the edge: no IPC at all, so holding a key down at the
     # screen border costs nothing.
     [ "$nx $ny $nw $nh" != "$x $y $w $h" ] || return 0
 
-    # Two commands, one round trip. Resize first: `move position` on the old
-    # size would land the frame wrong for every grow that moves an edge.
-    i3-msg "[con_id=$id] resize set $nw px $nh px; [con_id=$id] move position $nx px $ny px" >/dev/null
+    # A plain move needs no resize at all. Otherwise two commands, one round
+    # trip, resize first: `move position` on the old size would land the frame
+    # wrong for every grow that moves an edge.
+    if [ "$nw $nh" = "$w $h" ]; then
+        i3-msg "[con_id=$id] move position $nx px $ny px" >/dev/null
+    else
+        i3-msg "[con_id=$id] resize set $nw px $nh px; [con_id=$id] move position $nx px $ny px" >/dev/null
+    fi
 }
 
 case "${1:-off}" in
@@ -122,8 +140,9 @@ case "${1:-off}" in
         read -r id floating style width < <(focused_border) || exit 0
         [ -n "${width:-}" ] || exit 0
 
-        # A floating window owns its four edges, so hjkl can push them around; a
-        # tiled one only has a share of a split, which is i3's own resize mode.
+        # A floating window owns its four edges and its position, so hjkl can
+        # push the edges around and the arrows can move it; a tiled one only
+        # has a share of a split, which is i3's own resize mode.
         case $floating in
             user_on|auto_on) mode="resize floating" ;;
             *)               mode="resize" ;;
@@ -145,8 +164,8 @@ case "${1:-off}" in
         : > "$STATE"
         i3-msg "mode default" >/dev/null
         ;;
-    grow|shrink)
-        edge_step "$1" "${2:?usage: ${0##*/} $1 left|right|up|down}"
+    grow|shrink|move)
+        step "$1" "${2:?usage: ${0##*/} $1 left|right|up|down}"
         ;;
     clear)
         # i3-start form: put back a border left thick by a crash or by an i3
@@ -158,7 +177,7 @@ case "${1:-off}" in
         fi
         ;;
     *)
-        echo "usage: ${0##*/} on|off|clear|grow <dir>|shrink <dir>" >&2
+        echo "usage: ${0##*/} on|off|clear|grow <dir>|shrink <dir>|move <dir>" >&2
         exit 2
         ;;
 esac
