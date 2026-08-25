@@ -251,7 +251,8 @@ for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, s
 # then that window's next title change), which flings it back to the middle.
 # 3px, not the more usual 2: the border *is* the mouse resize handle, and two
 # pixels of it is a target you miss more often than you hit — corners worst.
-for_window [class=".*"] floating enable, border normal 3
+for_window [class=".*"] floating enable
+for_window [class=".*"] border normal 3
 
 # `border normal 3` above also puts back the border Alacritty drops via
 # _MOTIF_WM_HINTS. These two cover windows floated or tiled after the fact.
