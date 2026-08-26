@@ -75,6 +75,24 @@ window { background: transparent; }
 .ws.visible { background: $surface1; color: $text; }
 .ws.urgent  { background: $red; color: $base; }
 
+// media
+// No font-size here: every glyph also carries `icon`, so the size follows
+// BLE_SIZE_BAR. Play is marked by colour alone — 19px of content box is tight.
+.pbtn {
+  padding: 0 4px;
+  border-radius: 8px;
+  color: $subtext;
+  transition: background 150ms ease, color 150ms ease;
+}
+.pbtn:hover  { background: $surface0; color: $text; }
+.pbtn.accent { color: $mauve; }
+
+.ptitle       { color: $text; padding: 0 6px; }
+.ptitle:hover { color: $lavender; }
+// Stands in for a hidden title. Colour only; `icon` carries its size. Lit, not
+// dimmed — it is a state you switched on, and the only way back off.
+.eyemark      { color: $peach; }
+
 // status segments
 .seg {
   padding: 1px 4px;
@@ -135,6 +153,7 @@ window { background: transparent; }
   .island       { padding: 1px 6px; }
   .seg, .pad    { padding: 1px 3px; }
   .power        { padding: 1px 5px; }
+  .ptitle       { padding: 0 4px; }
 
   .val.vol      { min-width: 38px; }
   .val.cpu      { min-width: 74px; }
@@ -146,6 +165,7 @@ window { background: transparent; }
   .island       { padding: 1px 6px; }
   .seg, .pad    { padding: 1px 4px; }
   .power        { padding: 1px 6px; }
+  .ptitle       { padding: 0 4px; }
 
   // At the floor: shrink further and changing values start shifting neighbours.
   .val.vol      { min-width: 37px; }  // "muted"

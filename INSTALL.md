@@ -236,25 +236,54 @@ Controls:
 | Open full TUI (random/queue/volume/etc.) | `$mod+m` |
 | Rofi folder picker → queue + shuffle + play | `$mod+Shift+m` |
 | Play / pause, prev / next, what is playing | Inside ncmpcpp (`$mod+m`) |
-| Media keys | XF86AudioPlay / Next / Prev — **browsers only**, see below |
+| Play / pause, prev / next, track title | The bar's media island, or ncmpcpp |
+| Media keys | XF86AudioPlay / Next / Prev — same player the bar drives |
 
-The top bar carries no music at all: no transport buttons, no track title. The
-queue, the title and the transport all live in ncmpcpp, where the useful keys
-are: `z` = random, `r` = repeat, `c` = clear queue, `+/-` = volume, `space` =
-enqueue, `p` = pause, `>/<` = next/prev, `/` = search, `1/2/3/4` = switch panes.
+The bar's media island sits on the right, just left of the network icon, and
+shows whatever is playing *now* — mpd, a video, a Firefox tab: prev, play/pause,
+next, and the track title, which scrolls when it is longer than its slot.
+
+**Left-click the title to hide it** (screensharing) — the text is replaced, in
+place, by an eye icon; click it again to bring the title back. There is no
+separate eye button, and the slot keeps its exact width either way, so the three
+transport buttons never move. **Right-click the title** for the full title,
+artist and album in a notification, which the slot may have cut off.
+
+Queue-shaped controls stay in ncmpcpp (`$mod+m`), where the useful keys are:
+`z` = random, `r` = repeat, `c` = clear queue, `+/-` = volume, `space` = enqueue,
+`p` = pause, `>/<` = next/prev, `/` = search, `1/2/3/4` = switch panes.
 
 ## 6b. Media keys and MPRIS
 
-The media keys go through `playerctl`, which talks to MPRIS on D-Bus. mpd is not
-on D-Bus here: the bridge that put it there (`mpDris2`) went with the bar's music
-island and `setup.sh` now **masks** it. So the keys reach browsers and other MPRIS
-players, and mpd is driven from ncmpcpp.
+Everything media goes through MPRIS on D-Bus. mpd speaks it via the `mpdris2`
+bridge, which `dex --autostart` starts from `/etc/xdg/autostart` — so `setup.sh`
+**masks** the systemd copy of the same bridge. That is not to switch it off: two
+mpDris2 would race for one D-Bus name and one would lose. One copy runs either
+way.
 
-To put mpd back on the bus:
+The keys and the bar's buttons both go through
+[`scripts/player_ctl.sh`](./scripts/player_ctl.sh), never bare `playerctl` —
+`playerctl` acts on the first name it finds on the bus, which is not necessarily
+the one the bar is showing. The ranking that decides *which* player they mean
+lives in [`scripts/player_lib.sh`](./scripts/player_lib.sh):
+
+1. mpd, if it is playing
+2. any other player that is playing
+3. whichever player was last seen playing, if it is only paused
+4. mpd, if it is paused
+5. any other paused player
+
+Rule 3 is what stops the bar changing its mind: without it, pausing a video hands
+the buttons back to a paused mpd, and the next press resumes the wrong thing. It
+is also why the island stays put after you pause — the last thing you played is
+still what the buttons mean.
+
+If mpd never shows up on the bar, the bridge is missing or not running:
 
 ```bash
-systemctl --user unmask mpDris2.service      # case varies between packagings
-systemctl --user enable --now mpDris2.service
+playerctl -l                                 # mpd should be listed
+pgrep -a mpDris2                             # dex's copy, from /etc/xdg/autostart
+systemctl --user unmask mpDris2.service      # only if you drop dex's copy
 ```
 
 Not every control reaches every player. Firefox reports `CanGoNext: false` for a

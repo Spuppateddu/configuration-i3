@@ -31,7 +31,8 @@ exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
 # rect, cascading it when the centre is taken. After the bar, which shrinks it.
 exec_always --no-startup-id ~/.i3rc/scripts/float.sh watch
 # No music daemon here: mpd.socket (systemd, user) starts mpd on the first
-# connect, so $mod+m / $mod+Shift+m are what bring it up.
+# connect, so $mod+m / $mod+Shift+m are what bring it up. Nor mpDris2, the bridge
+# putting mpd on MPRIS: dex runs it, and a second copy races it for the bus name.
 
 # Hide the mouse pointer while typing.
 exec_always --no-startup-id ~/.i3rc/scripts/restart_xbanish.sh
@@ -60,11 +61,11 @@ bindsym XF86AudioMicMute     exec --no-startup-id wpctl set-mute   @DEFAULT_AUDI
 bindsym XF86MonBrightnessUp   exec --no-startup-id brightnessctl set +5%
 bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
 
-# Media keys. Browsers only — mpd is off D-Bus since mpDris2 was dropped; drive
-# it from ncmpcpp ($mod+m) instead.
-bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
-bindsym XF86AudioNext exec --no-startup-id playerctl next
-bindsym XF86AudioPrev exec --no-startup-id playerctl previous
+# Media keys. Through player_ctl.sh, so a key and the bar's media island drive the
+# SAME player — bare playerctl takes the first name on the bus, not the ranked one.
+bindsym XF86AudioPlay exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh toggle
+bindsym XF86AudioNext exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh next
+bindsym XF86AudioPrev exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh prev
 
 # ── Vim-style directions ──────────────────────────────────────────────────
 set $up    k

@@ -2,6 +2,8 @@
 
 ;; ── Data sources ─────────────────────────────────────────────────────────────
 (deflisten wsmap :initial "{}" "$HOME/.i3rc/eww/scripts/workspaces.sh")
+(deflisten player :initial '{"status":"none","title":"","artist":"","display":"","blank":""}'
+  "$HOME/.i3rc/eww/scripts/player.sh")
 (deflisten net :initial '{"kind":"off","label":"offline"}'
   "$HOME/.i3rc/eww/scripts/network.sh")
 (deflisten vol :initial '{"level":0,"muted":false}'
@@ -10,7 +12,7 @@
 ;; re-emits on every output event, so it never points at a dead monitor.
 ;; The initial value mirrors screen.sh's `wide` tier, so the first frame drawn
 ;; before the script's first emit has the final geometry and does not jump.
-(deflisten scr :initial '{"tier":"wide","mon":"","w":1920,"gap":6,"group":8,"item":3,"tray":120}'
+(deflisten scr :initial '{"tier":"wide","mon":"","w":1920,"gap":6,"group":8,"item":3,"title":40,"tray":120}'
   "$HOME/.i3rc/eww/scripts/screen.sh")
 
 ;; ── Workspaces ───────────────────────────────────────────────────────────────
@@ -45,6 +47,38 @@
 ;; Thin fading divider between logical groups inside an island.
 (defwidget vsep []
   (box :class "vsep"))
+
+;; ── Media island ─────────────────────────────────────────────────────────────
+;; Whatever is playing now — mpd, a video, a Firefox tab. scripts/player_lib.sh
+;; picks which player; queue controls stay in ncmpcpp ($mod+m).
+
+;; Privacy toggle for the track title — clicking the title itself flips it. Not
+;; persisted: a fresh eww daemon always starts with the title shown.
+(defvar title_hidden false)
+
+;; No eye BUTTON: the title itself is the toggle, and clicking it swaps the text
+;; for the eye in place — the control lives where the thing it hides lives.
+(defwidget player_island []
+  ;; Folds away entirely when nothing is playing; the status island's leading
+  ;; divider is guarded on the same condition, so it goes with it.
+  (revealer :reveal {player.status != "none"} :transition "slideright" :duration "300ms"
+    (box :class "island player" :space-evenly false :spacing {scr.gap}
+      (box :space-evenly false :spacing {scr.item}
+        (button :class "pbtn icon" :onclick "$HOME/.i3rc/scripts/player_ctl.sh prev" "󰒮")
+        (button :class "pbtn icon accent" :onclick "$HOME/.i3rc/scripts/player_ctl.sh toggle"
+          {player.status == "Playing" ? "󰏤" : "󰐊"})
+        (button :class "pbtn icon" :onclick "$HOME/.i3rc/scripts/player_ctl.sh next" "󰒭"))
+      ;; Left click hides the title, right click notifies it in full. `player.blank`
+      ;; is `player.display`'s CHARACTER count in NBSPs, so the slot never resizes.
+      (button :class "ptitle"
+              :onclick "${EWW_CMD} update title_hidden=${!title_hidden}"
+              :onrightclick "$HOME/.i3rc/scripts/player_ctl.sh show-title"
+        (overlay
+          (label :halign "center" :text {title_hidden ? player.blank : player.display})
+          ;; An OVERLAY cannot resize its first child, so the eye costs no width.
+          ;; :visible works on a plain label, unlike on a defwidget — see below.
+          (label :class "icon eyemark" :visible {title_hidden}
+                 :halign "center" :valign "center" :text "󰈉"))))))
 
 ;; ── Status island ────────────────────────────────────────────────────────────
 ;; Icon only: connected over wifi, connected over ethernet, or offline.
@@ -120,6 +154,10 @@
 
 (defwidget status_island []
   (box :class "island status" :space-evenly false :spacing {scr.gap}
+    ;; Leading divider, or the media title runs into the network icon. Guard on a
+    ;; `box`: eww silently DROPS :visible on a defwidget — no error, divider stays.
+    (box :space-evenly false :visible {player.status != "none"}
+      (vsep))
     (netseg)
     (vsep)
     (volseg)
@@ -151,7 +189,10 @@
     ;; to_entries keeps workspaces.sh's group_by order, so cards don't reshuffle.
     (detachedcards
       :wssl {jq(wsmap, "[to_entries[] | select(.key != \"${scr.mon}\") | .value]")})
+    ;; The one spacer sits HERE, left of the media island: media + status ride the
+    ;; right edge as one block. After it instead, the title drifts to the middle.
     (box :hexpand true)
+    (player_island)
     (status_island)))
 
 ;; Opened once, on the primary output: eww open bar --screen <name>

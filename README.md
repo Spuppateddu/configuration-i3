@@ -24,7 +24,7 @@ Tiling, one `$mod+Control+space` away — every window takes a share of the scre
 - **Compositor:** [picom/picom.conf](./picom/picom.conf)
 - **Notifications:** [dunst/dunstrc](./dunst/dunstrc)
 - **Music daemon:** [mpd/mpd.conf](./mpd/mpd.conf) + [ncmpcpp/config](./ncmpcpp/config) — started on demand by `mpd.socket`, never at login
-- **Scripts:** [scripts/](./scripts/) — bar launcher, power menu, music helpers
+- **Scripts:** [scripts/](./scripts/) — bar launcher, power menu, media transport
 
 > Bluetooth is the blueman tray icon in the bar's systray.
 > [`scripts/bluetooth_menu.sh`](./scripts/bluetooth_menu.sh) is a rofi
@@ -239,9 +239,19 @@ machine is what breaks the other. Two rules keep that from happening:
   `compact` ≥1500px, `dense` below). Those set `gap`/`group` and the paddings in
   `eww.scss`'s `.bar.compact` / `.bar.dense` blocks.
 
-Nothing on the bar is elastic: every segment has a reserved width, the
-workspace squares are fixed, and all the slack goes to the spacer between the
-workspaces and the status island.
+Only one thing on the bar is elastic, and it is elastic in *characters*, not
+pixels: the media island's track title. `screen.sh` gives it a per-tier target in
+characters (`tw`) and `eww/scripts/player.sh` pads or marquee-scrolls the text to
+exactly that many, so the label sizes itself and the slot is right at any font
+size. Never give it a pixel width — that has to assume a font size, and
+`size.local.scss` changes that per machine.
+
+Everything else is fixed: every status segment has a reserved width, and the
+workspace squares are squares. All the slack goes to the one spacer, and that
+spacer sits *left* of the media island — so the workspaces are pinned to the left
+edge, and media + status ride together against the right edge as one block,
+divider to divider. Move the spacer to the other side of the media island and the
+track title drifts off into the middle of the bar, away from the network icon.
 
 The bar is **21px** tall, and that number is written in three places that must
 agree: the window `:height` and the struts' `:distance` in `eww.yuck`, and
@@ -270,9 +280,10 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
 ├── install.sh                 # thin wrapper for orchestrators → setup.sh + live reload
 ├── INSTALL.md                 # package list + step-by-step setup
 ├── eww/
-│   ├── eww.yuck               # bar layout: workspaces, status, calendar
+│   ├── eww.yuck               # bar layout: workspaces, media, status, calendar
 │   ├── eww.scss               # Gruvbox Dark styling
 │   └── scripts/               # JSON emitters: workspaces, network, volume,
+│                              #   player (what is playing + the marquee),
 │                              #   screen (layout tier + the bar's output)
 ├── gtk/{gtk.css,settings.ini} # GTK menu theming (nm-applet, blueman tray menus)
 ├── rofi/{config,launcher,powermenu}.rasi

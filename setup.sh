@@ -101,7 +101,9 @@ PACKAGES=(
     network-manager-gnome blueman
     pavucontrol brightnessctl playerctl pulseaudio-utils
     wireplumber
-    mpd mpc ncmpcpp
+    # mpdris2 puts mpd on MPRIS, which is how the bar and the media keys see it
+    # at all. Started by dex's XDG autostart, not systemd.
+    mpd mpc ncmpcpp mpdris2
     dex xss-lock
     # Papirus is named by rofi/dunst, Yaru by gtk/settings.ini. Yaru is only
     # missing on a minimal install, where tray menus fall back to hicolor.
@@ -403,10 +405,8 @@ if command -v systemctl >/dev/null 2>&1; then
         run systemctl --user disable --now mpd.service || true
     fi
 
-    # The MPRIS bridge went with the bar's music island: playerctl and the media
-    # keys now reach browsers only. `systemctl --user unmask` undoes this.
-    # Masked, not disabled — the package enables it in *global* scope
-    # (/etc/systemd/user), where a --user disable has no say.
+    # dex's XDG autostart already runs the bridge, so the systemd copy is masked —
+    # two would race for one bus name. Masked: a --user disable cannot reach it.
     for svc in mpdris2.service mpDris2.service; do
         systemctl --user list-unit-files "$svc" 2>/dev/null | grep -Fq "$svc" || continue
         case "$(systemctl --user is-enabled "$svc" 2>/dev/null)" in
