@@ -62,6 +62,11 @@ for_window [window_type="normal"] floating disable
 for_window [workspace="^__i3"] floating enable
 for_window [class="(?i)^flameshot$"] floating enable
 for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, sticky enable
+
+# Tiled, only the focused window is coloured: config's own greys, put back over
+# the 06-colors.local best-linux-environment writes. Last `client.*` line wins.
+client.focused_inactive #3c3836 #3c3836 #a89984 #504945 #3c3836
+client.unfocused        #282828 #282828 #a89984 #504945 #282828
 EOF
 }
 

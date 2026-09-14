@@ -397,7 +397,9 @@ If the top bar doesn't appear:
   centre, as before), also read by `scripts/float.sh`.
 - **Plain tiling i3** — `$mod+Control+space`, or `scripts/desktop_mode.sh
   tiling`. It writes `90-tiling-mode.local` and reloads; `floating` deletes it
-  again, and `status` prints which mode is on. See the README's *Tiling mode*.
+  again, and `status` prints which mode is on. While tiling, only the focused
+  window is coloured — the file greys the unfocused ones. See the README's
+  *Tiling mode*.
 - **Background color** — the colour in `scripts/set_background.sh` (`config`
   runs it via the `set_background.sh` line).
 

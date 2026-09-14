@@ -149,6 +149,12 @@ also swaps the border on the open windows — only those still wearing the
 catch-all's, so a per-app border is never touched; a window flipped alone with
 `$mod+Shift+space` keeps whatever it has.
 
+Tiled, only the focused window is coloured. The same `90-tiling-mode.local`
+puts `client.unfocused` and `client.focused_inactive` back to `config`'s greys,
+over the `06-colors.local` that best-linux-environment writes to colour every
+unfocused window: it sorts later, and i3 takes the last `client.*` line. Going
+back to floating deletes the file, so the rolled unfocused colour returns.
+
 `$mod+Shift+h/j/k/l` and `$mod+r` keep working in tiling mode — with nothing
 floating, `float.sh` and `window_mode.sh` always take their `move`/i3-resize
 branch.
