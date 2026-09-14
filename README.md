@@ -139,6 +139,16 @@ flameshot, and Firefox's Picture-in-Picture. The switch reloads i3, so the bar
 blinks once, and it re-places every open window: `$mod+Shift+space` still flips
 a single window inside either mode.
 
+Tiled windows wear a thinner frame: the title bar stays, the left, right and
+bottom sides drop from `config`'s 3px to 2px (`I3RC_TILE_BORDER_PX`, exported
+before i3 starts like the knobs above; 1 makes the seam between two tiles a
+2px target). That rule is a second generated file, `00-tiling-border.local`,
+named to sort *before* the per-app border files, so an image viewer's
+`border pixel 1` still wins there exactly as it does over `config`. The switch
+also swaps the border on the open windows — only those still wearing the
+catch-all's, so a per-app border is never touched; a window flipped alone with
+`$mod+Shift+space` keeps whatever it has.
+
 `$mod+Shift+h/j/k/l` and `$mod+r` keep working in tiling mode — with nothing
 floating, `float.sh` and `window_mode.sh` always take their `move`/i3-resize
 branch.
@@ -276,6 +286,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
 ├── config                     # i3 main config (included from ~/.config/i3/config)
 ├── config.local               # per-machine overrides (git-ignored, optional)
 ├── 90-tiling-mode.local       # desktop_mode.sh writes it while tiling mode is on
+├── 00-tiling-border.local     # ...and the thinner tiled border, same script
 ├── setup.sh                   # the installer (idempotent, --dry-run)
 ├── install.sh                 # thin wrapper for orchestrators → setup.sh + live reload
 ├── INSTALL.md                 # package list + step-by-step setup

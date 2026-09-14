@@ -386,7 +386,8 @@ If the top bar doesn't appear:
   `default_floating_border`/`default_border` in `config`. It doubles as the mouse
   resize handle, so thinner borders are harder to grab; i3 takes whole pixels
   only. Existing windows keep the old width until reopened, or until
-  `i3-msg '[floating] border normal <n>'`.
+  `i3-msg '[floating] border normal <n>'`. Tiling mode has its own, thinner
+  one: `I3RC_TILE_BORDER_PX` (default 2), see the README's *Tiling mode*.
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
   usable workspace, default 50/70) and `I3RC_VMAX_H_PCT` (the `$mod+Shift+k`
   height, default 96) read by `scripts/float.sh`; see the README's
