@@ -139,7 +139,7 @@ flameshot, and Firefox's Picture-in-Picture. The switch reloads i3, so the bar
 blinks once, and it re-places every open window: `$mod+Shift+space` still flips
 a single window inside either mode.
 
-Tiled windows wear a thinner frame: the title bar stays, the left, right and
+Tiled windows wear a thinner frame: the left, right and
 bottom sides drop from `config`'s 3px to 2px (`I3RC_TILE_BORDER_PX`, exported
 before i3 starts like the knobs above; 1 makes the seam between two tiles a
 2px target). That rule is a second generated file, `00-tiling-border.local`,
@@ -148,6 +148,14 @@ named to sort *before* the per-app border files, so an image viewer's
 also swaps the border on the open windows — only those still wearing the
 catch-all's, so a per-app border is never touched; a window flipped alone with
 `$mod+Shift+space` keeps whatever it has.
+
+The title bar stays on a tiled window unless `00-no-titlebar.local` is there.
+That file is written by *best-linux-environment* (`BLE_I3_TITLEBAR=false` in its
+`settings.local`) and its **presence is the flag**, the same way
+`90-tiling-mode.local`'s is the mode: `desktop_mode.sh` reads it, and writes
+`border pixel 2` instead of `border normal 2` — same thin frame, no bar. So the
+two settings are independent, and neither file has to know the other's number.
+Without that file nothing changes; this repo on its own keeps its title bars.
 
 Tiled, only the focused window is coloured. The same `90-tiling-mode.local`
 puts `client.unfocused` and `client.focused_inactive` back to `config`'s greys,
@@ -293,6 +301,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
 ├── config.local               # per-machine overrides (git-ignored, optional)
 ├── 90-tiling-mode.local       # desktop_mode.sh writes it while tiling mode is on
 ├── 00-tiling-border.local     # ...and the thinner tiled border, same script
+├── 00-no-titlebar.local       # best-linux-environment: drop every title bar
 ├── setup.sh                   # the installer (idempotent, --dry-run)
 ├── install.sh                 # thin wrapper for orchestrators → setup.sh + live reload
 ├── INSTALL.md                 # package list + step-by-step setup

@@ -27,6 +27,14 @@ BORDER_FILE=${I3RC_BORDER_FILE:-$HOME/.i3rc/00-tiling-border.local}
 TILE_BORDER_PX=${I3RC_TILE_BORDER_PX:-2}
 FLOAT_BORDER_PX=3   # config's `border normal 3`, the width the switch swaps
 
+# best-linux-environment writes this file when its settings.local says
+# BLE_I3_TITLEBAR=false; its presence is the whole flag, exactly like MODE_FILE.
+NO_TITLE_FILE=${I3RC_NO_TITLE_FILE:-$HOME/.i3rc/00-no-titlebar.local}
+# `pixel` is `normal` minus the title bar, same width — so the switch swaps the
+# width without ever putting back a title bar the desktop is not wearing.
+BORDER_STYLE=normal
+[ -e "$NO_TITLE_FILE" ] && BORDER_STYLE=pixel
+
 # Classes that stay floating in tiling mode: their window *is* the screen.
 # Same default as float.sh's skip list, and the rules below repeat it.
 KEEP_CLASS_RE=${I3RC_FLOAT_SKIP:-'^(flameshot|i3lock)$'}
@@ -44,7 +52,7 @@ write_border_file() {
 
 # Runs after config's \`border normal 3\` and before 07-/08-/config.local, so a
 # per-app border set there still wins, exactly as it does over config.
-for_window [window_type="normal"] border normal $TILE_BORDER_PX
+for_window [window_type="normal"] border $BORDER_STYLE $TILE_BORDER_PX
 EOF
 }
 
@@ -103,8 +111,8 @@ to_tiling() {
     run_each 'floating disable' "${ids[@]}"
     # Rules only fire on new windows: swap the open ones' border here, and only
     # the catch-all's — a per-app `pixel 1` is not the switch's to touch.
-    mapfile -t ids < <(targets ".border == \"normal\" and .current_border_width == $FLOAT_BORDER_PX")
-    run_each "border normal $TILE_BORDER_PX" "${ids[@]}"
+    mapfile -t ids < <(targets ".border == \"$BORDER_STYLE\" and .current_border_width == $FLOAT_BORDER_PX")
+    run_each "border $BORDER_STYLE $TILE_BORDER_PX" "${ids[@]}"
 }
 
 to_floating() {
@@ -112,8 +120,8 @@ to_floating() {
     rm -f "$MODE_FILE" "$BORDER_FILE"
     i3-msg reload >/dev/null
     # Border back first: the style change resizes the frame, place.sh fixes it.
-    mapfile -t ids < <(targets ".border == \"normal\" and .current_border_width == $TILE_BORDER_PX")
-    run_each "border normal $FLOAT_BORDER_PX" "${ids[@]}"
+    mapfile -t ids < <(targets ".border == \"$BORDER_STYLE\" and .current_border_width == $TILE_BORDER_PX")
+    run_each "border $BORDER_STYLE $FLOAT_BORDER_PX" "${ids[@]}"
     mapfile -t ids < <(targets '.floating == "user_off" or .floating == "auto_off"')
     run_each 'floating enable' "${ids[@]}"
     # Floating alone leaves them at whatever size the layout gave them: place
