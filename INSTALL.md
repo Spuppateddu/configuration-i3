@@ -389,12 +389,18 @@ If the top bar doesn't appear:
   `i3-msg '[floating] border normal <n>'`. Tiling mode has its own, thinner
   one: `I3RC_TILE_BORDER_PX` (default 2), see the README's *Tiling mode*.
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
-  usable workspace, default 50/70) and `I3RC_VMAX_H_PCT` (the `$mod+Shift+k`
-  height, default 96) read by `scripts/float.sh`; see the README's
+  usable workspace, default 38/78 — a tall rectangle) and `I3RC_VMAX_H_PCT` (the
+  `$mod+Shift+k` height, default 96) read by `scripts/float.sh`; see the README's
   *Floating desktop* section.
-- **New-window cascade** — `I3RC_CASCADE_PX` (pixels a new window steps
-  down-right when its spot is taken, default 32; `0` stacks everything in the
-  centre, as before), also read by `scripts/float.sh`.
+- **Where a new window lands** — `I3RC_PLACE_COLS` / `I3RC_PLACE_ROWS` (how many
+  spots the random draw picks from, across the workspace and down it, default
+  9/5; `1` and `1` centre every window instead) and `I3RC_MAX_COVER_PCT` (how
+  much of the previously focused window a new one may hide and still count as a
+  free spot, in percent of its area, default 25; `0` allows only spots that do
+  not touch it), also read by `scripts/float.sh`.
+- **Room from the screen edges** — `I3RC_EDGE_GAP_PX` (pixels a newly opened
+  window keeps from the borders of the usable workspace, default 16; `0` lets a
+  window sit flush against an edge), also read by `scripts/float.sh`.
 - **Plain tiling i3** — `$mod+Control+space`, or `scripts/desktop_mode.sh
   tiling`. It writes `90-tiling-mode.local` and reloads; `floating` deletes it
   again, and `status` prints which mode is on. While tiling, only the focused

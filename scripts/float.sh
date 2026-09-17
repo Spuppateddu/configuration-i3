@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The floating desktop: `watch` sizes and centres every new window, `move <dir>`
-# snaps a floating one, `place <con_id>` places one on demand (desktop_mode.sh).
+# The floating desktop: `watch` sizes every new window and drops it on a random
+# free spot that keeps the window you came from readable, `move <dir>` snaps a
+# floating one, `place <con_id>` places one on demand (desktop_mode.sh).
 
 # Every number comes from the live workspace rect, which i3 already shrank by the
 # eww bar's strut — so no resolution, bar height or output name is hardcoded.
@@ -11,18 +12,35 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/runtime_lib.sh" || e
 
 PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 
-# Standard window: percent of the usable workspace, centred. Every new normal
-# window opens like this, and `move down` snaps a window back to it.
-STD_W_PCT=${I3RC_STD_W_PCT:-50}
-STD_H_PCT=${I3RC_STD_H_PCT:-70}
+# Standard window: percent of the usable workspace — a tall rectangle, a little
+# wider than a third of the screen, so two sit side by side with room to spare
+# and a third still fits over them without hiding much. Short enough to leave
+# real room above and below too: a new window can sit high or low, not only left
+# or right. Every new normal window opens at this size, and `move down` snaps a
+# window back to it, centred.
+STD_W_PCT=${I3RC_STD_W_PCT:-38}
+STD_H_PCT=${I3RC_STD_H_PCT:-78}
 
 # `move up`: percent of the usable workspace height a window grows to, keeping
 # its own width. Not 100, so the frame still reads as a floating window.
 VMAX_H_PCT=${I3RC_VMAX_H_PCT:-96}
 
-# Cascade step: a new window whose slot is taken opens this many pixels further
-# down-right. Sized off the title bar; 0 stacks every window in the middle again.
-CASCADE_PX=${I3RC_CASCADE_PX:-32}
+# Spots a new window may be dropped on: this many positions across the usable
+# workspace and this many down it. More of them means finer, more varied
+# placement and a slower scan; 1 x 1 is the centre alone — placement off, every
+# window stacked in the middle again.
+PLACE_COLS=${I3RC_PLACE_COLS:-9}
+PLACE_ROWS=${I3RC_PLACE_ROWS:-5}
+
+# How much of the window you were just on a new window may hide, in percent of
+# its area. Every spot under this counts as free and can be drawn; 0 means only
+# spots that hide nothing of it at all.
+MAX_COVER_PCT=${I3RC_MAX_COVER_PCT:-25}
+
+# Breathing room a new window keeps from the edges of the usable workspace, in
+# pixels: no frame is ever flush against a screen edge or the bar. Shrunk on the
+# spot if a window is too big to fit with it, so a slot always exists.
+EDGE_GAP_PX=${I3RC_EDGE_GAP_PX:-16}
 
 # Classes the daemon never resizes: their window *is* the screen, so a
 # standard-size frame breaks them outright.
@@ -55,50 +73,131 @@ con_state_of() {
         | "\(.c.floating) \(.c.window_type // "normal") \(.r.x) \(.r.y) \(.r.width) \(.r.height)"'
 }
 
-# "<x> <y>" per floating window already on con $1's workspace, that one left out.
-# The floating con carries the frame rect, which is what `move position` sets.
+# "<x> <y> <w> <h> <prev>" per floating window already on con $1's workspace,
+# that one left out. The floating con carries the frame rect, which is what
+# `move position` sets and what the new window would cover.
+#
+# <prev> is 1 on the window that was focused before this one opened: i3 keeps a
+# workspace's children in focus order, so it is simply the first one that is not
+# us — no state to remember between events, and it works from desktop_mode.sh
+# too. It is 0 on every window when the previous one was tiled or is gone.
 peers_of() {
     i3-msg -t get_tree | jq -r --argjson id "$1" "$JQ_DESC"'
         [ desc | select(.type == "workspace")
                | select([desc | select(.id == $id)] | length > 0) ]
         | first // empty
-        | .floating_nodes[]
-        | select([desc | select(.id == $id)] | length == 0)
-        | "\(.rect.x) \(.rect.y)"'
+        | . as $ws
+        | ([ $ws.floating_nodes[]
+             | select([desc | select(.id == $id)] | length > 0)
+             | .id ] | first) as $self
+        | ([ $ws.focus[]? | select(. != $self) ] | first) as $prev
+        | $ws.floating_nodes[]
+        | select(.id != $self)
+        | "\(.rect.x) \(.rect.y) \(.rect.width) \(.rect.height) \(if .id == $prev then 1 else 0 end)"'
 }
 
-# "<con> <W> <H> <X> <Y> <ws-right> <ws-bottom>" in, a free "<X> <Y>" out: slot 0
-# is the centre, each next one a step down-right, past the edge it wraps to 0.
-cascade() {
-    local id=$1 w=$2 h=$3 x=$4 y=$5 right=$6 bottom=$7
-    local -a peer_x=() peer_y=()
-    local px py slot=0 cx cy dx dy i taken
+# "<n> <lo> <hi> <mid>" in, n candidate positions out: evenly spaced from <lo>
+# to <hi>, both included. n of 1, or no room to move at all, is <mid> alone.
+slots() {
+    local n=$1 lo=$2 hi=$3 mid=$4 i
+    if ! [ "$n" -gt 1 ] 2>/dev/null || [ "$hi" -le "$lo" ]; then
+        printf '%d\n' "$mid"
+        return 0
+    fi
+    for ((i = 0; i < n; i++)); do
+        printf '%d\n' "$((lo + i * (hi - lo) / (n - 1)))"
+    done
+}
 
-    [ "$CASCADE_PX" -gt 0 ] 2>/dev/null || { printf '%d %d\n' "$x" "$y"; return 0; }
+# "<con> <W> <H> <X> <Y> <ws-x> <ws-y> <ws-w> <ws-h>" in, a spot "<X> <Y>" out.
+#
+# Nothing else open: the centre. Otherwise a *random* spot that keeps the window
+# you were just on in sight — every slot is measured by how much of that window
+# the new frame would hide there, every slot hiding no more than MAX_COVER_PCT of
+# it is fair game, and one of those is drawn. Random on purpose: two windows
+# opened one after the other should not land in the same place, and the screen
+# fills up evenly instead of always from the same corner.
+#
+# When even the best slot hides more than MAX_COVER_PCT — a screen with no room
+# left — the draw is made among the least-hiding slots instead, so the rule
+# degrades quietly rather than piling every window in one spot.
+#
+# Slots that leave the *other* windows untouched as well are preferred whenever
+# there are any: free screen is used before anything is buried. Slots stay
+# EDGE_GAP_PX inside the workspace, so nothing ever opens flush against an edge.
+free_spot() {
+    local id=$1 w=$2 h=$3 cx=$4 cy=$5 x=$6 y=$7 ww=$8 wh=$9
+    local -a px=() py=() pw=() ph=() cols=() rows=()
+    local -a slot_x=() slot_y=() hid=() other=() pick=() clean=()
+    local a b c d f i sx sy gx gy ox oy area
+    local prev=-1 ref_area=0 best=-1 limit thr
 
-    while read -r px py; do
-        [ -n "${py:-}" ] && { peer_x+=("$px"); peer_y+=("$py"); }
+    while read -r a b c d f; do
+        [ -n "${f:-}" ] || continue
+        px+=("$a"); py+=("$b"); pw+=("$c"); ph+=("$d")
+        [ "$f" = 1 ] && prev=$((${#px[@]} - 1))
     done < <(peers_of "$id")
 
-    while :; do
-        cx=$((x + slot * CASCADE_PX)); cy=$((y + slot * CASCADE_PX))
-        if [ $((cx + w)) -gt "$right" ] || [ $((cy + h)) -gt "$bottom" ]; then
-            cx=$x; cy=$y; break
-        fi
-        taken=0
-        # Taken: a corner less than a full step away on *both* axes — so the next
-        # slot still reads free, and a window dragged off-grid blocks its own.
-        for i in ${!peer_x[@]}; do
-            dx=$((peer_x[i] - cx)); [ "$dx" -lt 0 ] && dx=$((-dx))
-            dy=$((peer_y[i] - cy)); [ "$dy" -lt 0 ] && dy=$((-dy))
-            [ "$dx" -lt "$CASCADE_PX" ] && [ "$dy" -lt "$CASCADE_PX" ] &&
-                { taken=1; break; }
+    # An empty workspace gets the centre, and that is the whole rule for it.
+    [ "${#px[@]}" -gt 0 ] || { printf '%d %d\n' "$cx" "$cy"; return 0; }
+
+    # What "in sight" is measured against: the window you were just on, or, when
+    # that one is gone or tiled, every window on the workspace together.
+    if [ "$prev" -ge 0 ]; then
+        ref_area=$((pw[prev] * ph[prev]))
+    else
+        for i in "${!px[@]}"; do ref_area=$((ref_area + pw[i] * ph[i])); done
+    fi
+    limit=$((ref_area * MAX_COVER_PCT / 100))
+
+    # The edge gap, per axis, never more than half of what the window leaves
+    # free: a window with no room to spare keeps its centred position instead.
+    gx=$EDGE_GAP_PX; gy=$EDGE_GAP_PX
+    [ $((ww - w)) -lt $((2 * gx)) ] && gx=$(((ww - w) / 2))
+    [ $((wh - h)) -lt $((2 * gy)) ] && gy=$(((wh - h) / 2))
+    [ "$gx" -lt 0 ] && gx=0
+    [ "$gy" -lt 0 ] && gy=0
+
+    mapfile -t cols < <(slots "$PLACE_COLS" "$((x + gx))" "$((x + ww - w - gx))" "$cx")
+    mapfile -t rows < <(slots "$PLACE_ROWS" "$((y + gy))" "$((y + wh - h - gy))" "$cy")
+
+    # Pass one: for every slot, how much of the reference window it would hide,
+    # and how much of everything else.
+    for sx in "${cols[@]}"; do
+        for sy in "${rows[@]}"; do
+            slot_x+=("$sx"); slot_y+=("$sy"); hid+=(0); other+=(0)
+            for i in "${!px[@]}"; do
+                # Overlap of two rectangles: the gap between the inner edges on
+                # each axis, and nothing at all as soon as one of them is empty.
+                ox=$(( (sx + w < px[i] + pw[i] ? sx + w : px[i] + pw[i])
+                       - (sx > px[i] ? sx : px[i]) ))
+                [ "$ox" -gt 0 ] || continue
+                oy=$(( (sy + h < py[i] + ph[i] ? sy + h : py[i] + ph[i])
+                       - (sy > py[i] ? sy : py[i]) ))
+                [ "$oy" -gt 0 ] || continue
+                area=$((ox * oy))
+                if [ "$prev" -lt 0 ] || [ "$i" = "$prev" ]; then
+                    hid[-1]=$((hid[-1] + area))
+                else
+                    other[-1]=$((other[-1] + area))
+                fi
+            done
+            [ "$best" -lt 0 ] || [ "${hid[-1]}" -lt "$best" ] && best=${hid[-1]}
         done
-        [ "$taken" = 0 ] && break
-        slot=$((slot + 1))
     done
 
-    printf '%d %d\n' "$cx" "$cy"
+    # Pass two: everything at or under the threshold goes in the hat, and the
+    # slots that bury nothing else at all get the hat to themselves if they exist.
+    thr=$((best > limit ? best : limit))
+    for i in "${!slot_x[@]}"; do
+        [ "${hid[i]}" -le "$thr" ] || continue
+        pick+=("$i")
+        [ "${other[i]}" = 0 ] && clean+=("$i")
+    done
+    [ "${#clean[@]}" -gt 0 ] && pick=("${clean[@]}")
+
+    i=${pick[RANDOM % ${#pick[@]}]}
+    printf '%d %d\n' "${slot_x[i]}" "${slot_y[i]}"
 }
 
 # "<dir> <x> <y> <w> <h> [<win-x> <win-w>]" in, "<W> <H> <X> <Y>" out; only `up`
@@ -147,11 +246,11 @@ place_con() {
     case $floating in user_on|auto_on) ;; *) return 0 ;; esac
 
     if [ "$wt" = "normal" ]; then
-        # The centred target is only where it *starts*: cascade steps it aside
-        # when a window is already sitting there.
+        # The centred target is only the size and a fallback position: the scan
+        # moves it to whichever slot hides the least of what is already open.
         read -r tw th tx ty < <(target down "$x" "$y" "$w" "$h")
-        read -r tx ty < <(cascade "$1" "$tw" "$th" "$tx" "$ty" \
-                                  "$((x + w))" "$((y + h))")
+        read -r tx ty < <(free_spot "$1" "$tw" "$th" "$tx" "$ty" \
+                                    "$x" "$y" "$w" "$h")
         apply "con_id=$1" "$tw" "$th" "$tx" "$ty"
     else
         # Dialogs, pickers and splashes keep the size they asked for; only the

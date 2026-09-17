@@ -56,15 +56,30 @@ font and the cursor theme, and installs the programs the keybinds assume
 
 ## Floating desktop
 
-Every window opens **floating**, with a real draggable title bar, at half the
-screen width × 70% of its height, centred. Click-to-focus, not focus-follows-mouse.
+Every window opens **floating**, with a real draggable title bar, as a tall
+rectangle: 38% of the screen wide × 78% of its height. Two stand side by side
+with room to spare, and there is space left above and below for one to sit high
+or low. Click-to-focus, not focus-follows-mouse.
 
-New windows **cascade** instead of piling up: if a window is already sitting on
-the centre spot, the next one opens 32px further down-right, then 64px, and so
-on, so you can always see the title bar of the one behind and grab it. Close a
-window and its spot is free again — the next one goes back there. When no
-stepped spot is left on the screen the cascade wraps to the centre and stacks,
-which is what it used to do for every window.
+A new window lands on a **random free spot that keeps the window you came from
+in sight**. `float.sh` lays 9 × 5 candidate spots across the usable workspace,
+measures at each one how much of the previously focused window the new frame
+would hide, and draws at random among all the spots that hide **at most a
+quarter** of it — so you always keep three quarters of the old window and all of
+the new one, and no two windows opened in a row land in the same place. It is
+not just left or right: dead centre, a little up and to the right, low on the
+left, all of them come up, whichever ones happen to leave the old window
+readable.
+
+The rest is tie-breaking you rarely notice:
+
+- **Nothing else open** — dead centre, every time.
+- **Spots that also leave the other windows alone** win the draw whenever there
+  are any, so free screen is used before something gets buried.
+- **A full screen**, where every spot hides more than a quarter, draws among the
+  least-hiding spots instead of giving up and stacking.
+- **No window opens flush against an edge** — every spot keeps 16px from the
+  borders of the usable workspace, the bar included.
 
 `$mod+Shift+h/j/k/l` is **layout-aware** — i3 cannot be, so
 [`scripts/float.sh`](./scripts/float.sh) decides per keypress:
@@ -112,13 +127,16 @@ for the open windows), so each rule fires again on that window's next title
 change: a `move position center` there would fling windows you had placed by
 hand back to the middle, minutes after the reload.
 
-Four knobs, all optional, exported before i3 starts:
+Seven knobs, all optional, exported before i3 starts:
 
 ```bash
-I3RC_STD_W_PCT=50   # standard window width, % of the usable workspace
-I3RC_STD_H_PCT=70   # ...and its height
-I3RC_VMAX_H_PCT=96  # height $mod+Shift+k grows a window to, % of the same
-I3RC_CASCADE_PX=32  # cascade step for a new window on a taken spot; 0 = off
+I3RC_STD_W_PCT=38     # standard window width, % of the usable workspace
+I3RC_STD_H_PCT=78     # ...and its height
+I3RC_VMAX_H_PCT=96    # height $mod+Shift+k grows a window to, % of the same
+I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
+I3RC_PLACE_ROWS=5     # ...and down it; 1 x 1 turns the draw off
+I3RC_MAX_COVER_PCT=25 # how much of the window you came from a new one may hide
+I3RC_EDGE_GAP_PX=16   # room a new window keeps from the screen edges; 0 = flush
 ```
 
 ### Tiling mode
