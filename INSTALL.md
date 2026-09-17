@@ -382,12 +382,17 @@ If the top bar doesn't appear:
   `eww/eww.scss` (style); changes apply live with
   `~/.local/bin/eww --config ~/.i3rc/eww reload`.
 - **Gaps** — `gaps inner`/`gaps outer` in `config`.
-- **Border width** — the `3` in the `for_window [class=".*"]` line and in
+- **Border width** — the `2` in the `for_window [class=".*"]` line and in
   `default_floating_border`/`default_border` in `config`. It doubles as the mouse
   resize handle, so thinner borders are harder to grab; i3 takes whole pixels
-  only. Existing windows keep the old width until reopened, or until
-  `i3-msg '[floating] border normal <n>'`. Tiling mode has its own, thinner
-  one: `I3RC_TILE_BORDER_PX` (default 2), see the README's *Tiling mode*.
+  only. Two other places repeat it: `FLOAT_BORDER_PX` in
+  `scripts/desktop_mode.sh` (the width the tiling switch looks for on open
+  windows) and, when the title bar is off, `i3_titlebar_file()` in
+  *best-linux-environment*'s `basic/95-settings.sh`, which writes
+  `00-no-titlebar.local` and wins over `config`.
+  Existing windows keep the old width until reopened, or until
+  `i3-msg '[floating] border normal <n>'`. Tiling mode has its own knob:
+  `I3RC_TILE_BORDER_PX` (default 2), see the README's *Tiling mode*.
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
   usable workspace, default 38/78 — a tall rectangle) and `I3RC_VMAX_H_PCT` (the
   `$mod+Shift+k` height, default 96) read by `scripts/float.sh`; see the README's

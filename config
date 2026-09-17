@@ -250,15 +250,15 @@ for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, s
 # manage pass. Placement is float.sh's alone — a `move position center` here
 # also fires on a *managed* window whenever i3 re-arms the rule (any reload,
 # then that window's next title change), which flings it back to the middle.
-# 3px, not the more usual 2: the border *is* the mouse resize handle, and two
-# pixels of it is a target you miss more often than you hit — corners worst.
+# 2px. The border *is* the mouse resize handle, so it is also what you grab to
+# resize a window: thinner than this and the corners get hard to hit.
 for_window [class=".*"] floating enable
-for_window [class=".*"] border normal 3
+for_window [class=".*"] border normal 2
 
-# `border normal 3` above also puts back the border Alacritty drops via
+# `border normal 2` above also puts back the border Alacritty drops via
 # _MOTIF_WM_HINTS. These two cover windows floated or tiled after the fact.
-default_floating_border normal 3
-default_border          pixel 3
+default_floating_border normal 2
+default_border          pixel 2
 
 # Click to focus. Focus-follows-mouse fights overlapping windows: the pointer
 # resting over a background one steals focus from the window you are typing in.

@@ -157,10 +157,11 @@ flameshot, and Firefox's Picture-in-Picture. The switch reloads i3, so the bar
 blinks once, and it re-places every open window: `$mod+Shift+space` still flips
 a single window inside either mode.
 
-Tiled windows wear a thinner frame: the left, right and
-bottom sides drop from `config`'s 3px to 2px (`I3RC_TILE_BORDER_PX`, exported
-before i3 starts like the knobs above; 1 makes the seam between two tiles a
-2px target). That rule is a second generated file, `00-tiling-border.local`,
+Tiled windows get their own frame width for the left, right and bottom sides:
+`I3RC_TILE_BORDER_PX`, exported before i3 starts like the knobs above, default
+2. That is the same as `config`'s floating 2px, so out of the box the switch
+leaves the width alone; 1 makes it thinner, and the seam between two tiles a
+2px target. That rule is a second generated file, `00-tiling-border.local`,
 named to sort *before* the per-app border files, so an image viewer's
 `border pixel 1` still wins there exactly as it does over `config`. The switch
 also swaps the border on the open windows — only those still wearing the
