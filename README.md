@@ -114,6 +114,12 @@ only: size it with `hjkl`, then place it with the arrows. The focused window
 wears a thick frame while the mode is on. i3 cannot clamp a resize or a move
 itself, hence a script behind each keypress.
 
+Every window wears a 3px border; the focused one wears 4px, redrawn by
+[`scripts/focus_border.sh`](./scripts/focus_border.sh) on every `window::focus`
+event, because i3 can only vary a border's *colour* with focus, not its width.
+It touches those two widths alone, so a per-app `pixel 1` and the 6px `$mod+r`
+cue are never disturbed.
+
 Nothing is hardcoded to one screen. Every number comes from the live workspace
 rect, which i3 has already shrunk by the eww bar's strut, so the same commit is
 exact on a 3440×1440 ultrawide and a 1366 ThinkPad panel. `float.sh watch` runs
@@ -159,9 +165,9 @@ a single window inside either mode.
 
 Tiled windows get their own frame width for the left, right and bottom sides:
 `I3RC_TILE_BORDER_PX`, exported before i3 starts like the knobs above, default
-2. That is the same as `config`'s floating 2px, so out of the box the switch
-leaves the width alone; 1 makes it thinner, and the seam between two tiles a
-2px target. That rule is a second generated file, `00-tiling-border.local`,
+3. That is the same as `config`'s floating 3px, so out of the box the switch
+leaves the width alone; 2 makes it thinner, and the seam between two tiles a
+4px target. That rule is a second generated file, `00-tiling-border.local`,
 named to sort *before* the per-app border files, so an image viewer's
 `border pixel 1` still wins there exactly as it does over `config`. The switch
 also swaps the border on the open windows — only those still wearing the
@@ -172,7 +178,7 @@ The title bar stays on a tiled window unless `00-no-titlebar.local` is there.
 That file is written by *best-linux-environment* (`BLE_I3_TITLEBAR=false` in its
 `settings.local`) and its **presence is the flag**, the same way
 `90-tiling-mode.local`'s is the mode: `desktop_mode.sh` reads it, and writes
-`border pixel 2` instead of `border normal 2` — same thin frame, no bar. So the
+`border pixel 3` instead of `border normal 3` — same frame width, no bar. So the
 two settings are independent, and neither file has to know the other's number.
 Without that file nothing changes; this repo on its own keeps its title bars.
 
@@ -354,6 +360,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── desktop_mode.sh        # $mod+Control+space: float ↔ tile the whole desktop
     ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
     ├── window_mode.sh         # $mod+r: resize+move if floating, resize if tiled
+    ├── focus_border.sh        # thicker border on the focused window (daemon)
     ├── restart_kbd.sh         # key repeat + Caps→Ctrl, re-applied on hotplug
     └── restart_xbanish.sh     # hide pointer while typing, show on mouse move
 ```

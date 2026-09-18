@@ -30,6 +30,11 @@ exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
 # Floating desktop: sizes and centres each new window from the live workspace
 # rect, cascading it when the centre is taken. After the bar, which shrinks it.
 exec_always --no-startup-id ~/.i3rc/scripts/float.sh watch
+
+# The focused window's border, 1px thicker than every other one. i3 only has
+# per-focus colours, so a daemon redraws the width on each focus change.
+exec_always --no-startup-id ~/.i3rc/scripts/focus_border.sh watch
+
 # No music daemon here: mpd.socket (systemd, user) starts mpd on the first
 # connect, so $mod+m / $mod+Shift+m are what bring it up. Nor mpDris2, the bridge
 # putting mpd on MPRIS: dex runs it, and a second copy races it for the bus name.
@@ -250,15 +255,15 @@ for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, s
 # manage pass. Placement is float.sh's alone — a `move position center` here
 # also fires on a *managed* window whenever i3 re-arms the rule (any reload,
 # then that window's next title change), which flings it back to the middle.
-# 2px. The border *is* the mouse resize handle, so it is also what you grab to
+# 3px. The border *is* the mouse resize handle, so it is also what you grab to
 # resize a window: thinner than this and the corners get hard to hit.
 for_window [class=".*"] floating enable
-for_window [class=".*"] border normal 2
+for_window [class=".*"] border normal 3
 
-# `border normal 2` above also puts back the border Alacritty drops via
+# `border normal 3` above also puts back the border Alacritty drops via
 # _MOTIF_WM_HINTS. These two cover windows floated or tiled after the fact.
-default_floating_border normal 2
-default_border          pixel 2
+default_floating_border normal 3
+default_border          pixel 3
 
 # Click to focus. Focus-follows-mouse fights overlapping windows: the pointer
 # resting over a background one steals focus from the window you are typing in.
