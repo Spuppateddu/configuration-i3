@@ -57,9 +57,9 @@ font and the cursor theme, and installs the programs the keybinds assume
 ## Floating desktop
 
 Every window opens **floating**, with a real draggable title bar, as a tall
-rectangle: 38% of the screen wide × 78% of its height. Two stand side by side
-with room to spare, and there is space left above and below for one to sit high
-or low. Click-to-focus, not focus-follows-mouse.
+rectangle: 45% of the screen wide × 95% of its height. Two stand side by side,
+and the window uses nearly the whole height of the screen. Click-to-focus, not
+focus-follows-mouse.
 
 A new window lands on a **random free spot that keeps the window you came from
 in sight**. `float.sh` lays 9 × 5 candidate spots across the usable workspace,
@@ -136,8 +136,8 @@ hand back to the middle, minutes after the reload.
 Seven knobs, all optional, exported before i3 starts:
 
 ```bash
-I3RC_STD_W_PCT=38     # standard window width, % of the usable workspace
-I3RC_STD_H_PCT=78     # ...and its height
+I3RC_STD_W_PCT=45     # standard window width, % of the usable workspace
+I3RC_STD_H_PCT=95     # ...and its height
 I3RC_VMAX_H_PCT=96    # height $mod+Shift+k grows a window to, % of the same
 I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
 I3RC_PLACE_ROWS=5     # ...and down it; 1 x 1 turns the draw off
