@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Toggle the eww bar on the primary output. Reuses launch_eww's output logic.
+# Toggle the eww bar on every output it is configured for (bar_mode: all, or the
+# primary alone). Reuses launch_eww's output logic.
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "$HERE/eww_lib.sh" || exit 1   # EWW, CFG, eww_bar_is_open, eww_open_bar
+source "$HERE/eww_lib.sh" || exit 1   # eww_bar_is_open, eww_close_bars, eww_open_bar
 
-# Fixed window id. Deriving it from the current primary output missed the
-# running bar whenever that output had changed since the bar was opened, so the
-# toggle opened a second bar on top of the first instead of closing it.
+# Closed by the ids that are actually open, not by the ids the outputs ask for
+# now: an output that changed since the bars went up would otherwise leave one
+# behind, and the toggle would open a second bar on top of it.
 if eww_bar_is_open; then
-    "$EWW" --config "$CFG" close bar
-    rm -f "$BAR_SCREEN_STATE"   # no bar, so nothing is "current" any more
+    eww_close_bars
 else
     eww_open_bar
 fi

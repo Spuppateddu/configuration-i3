@@ -22,3 +22,7 @@ CLAUDE.md
 size.local.scss
 size.local.rasi
 size.local.conf
+
+# Which monitors the bar opens on, written by best-linux-environment's
+# settings.local (BLE_I3_BAR). Read by scripts/eww_lib.sh's bar_mode.
+bar.local.conf

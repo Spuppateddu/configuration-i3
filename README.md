@@ -302,6 +302,32 @@ edge, and media + status ride together against the right edge as one block,
 divider to divider. Move the spacer to the other side of the media island and the
 track title drifts off into the middle of the bar, away from the network icon.
 
+### Which monitors get a bar
+
+One bar per monitor, by default. `scripts/eww_lib.sh` opens the `bar` window once
+per active output — id `bar-<output>`, `--screen <output>`, `--arg mon=<output>`
+— and each copy draws that output's own workspaces and its own calendar popup.
+
+The other way is one bar on the primary alone, with the other outputs' workspaces
+riding on it as detached cards (the little monitor glyph). Switch with
+`eww/bar.local.conf`, a git-ignored one-liner read by `bar_mode`:
+
+```sh
+BAR_SCREENS=main   # primary only + detached cards; `all` (the default) is one bar per monitor
+```
+
+Write it from
+[best-linux-environment](https://github.com/Spuppateddu/best-linux-environment)
+rather than by hand: `BLE_I3_BAR=all|main` in its `settings.local`. Either way
+`$mod+Shift+b` toggles every bar at once, and `launch_eww.sh` rebuilds only when
+the outputs actually moved.
+
+Plugging a monitor in or out, or making another one primary, re-opens the bars by
+itself: `eww/scripts/screen.sh` is already subscribed to i3's `output` events, and
+re-runs `launch_eww.sh` (detached — the relaunch kills the daemon and the listener
+with it) whenever the list of outputs it would open on changes. Only on a real
+output event, so the first emit can never fire it and loop.
+
 The bar is **21px** tall, and that number is written in three places that must
 agree: the window `:height` and the struts' `:distance` in `eww.yuck`, and
 `.bar { min-height }` in `eww.scss`. The struts one is what i3 shrinks the
@@ -343,7 +369,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
 ├── mpd/mpd.conf
 ├── ncmpcpp/config
 └── scripts/
-    ├── launch_eww.sh          # runs the bar on the primary monitor
+    ├── launch_eww.sh          # runs the bar: one per monitor, or primary only
     ├── toggle_eww.sh          # show/hide the bar ($mod+Shift+b)
     ├── eww_lib.sh             # shared: output detection + bar open (sourced)
     ├── emit_lib.sh            # shared: JSON escape + resubscribe loop (sourced)

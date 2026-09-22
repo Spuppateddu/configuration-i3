@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Launch the eww bar on the primary output only; other outputs' workspaces show
-# as detached cards. Re-runs on every i3 restart, hence the flock and the sweep.
+# Launch the eww bar: one per monitor, or on the primary alone with the other
+# outputs' workspaces as detached cards — scripts/eww_lib.sh's bar_mode decides.
+# Re-runs on every i3 restart, hence the flock and the sweep.
 #
 # `9>&-` on the daemon: inheriting the lock fd would hold the flock for its whole
 # lifetime, and every later run would time out without rebuilding.
@@ -12,8 +13,8 @@ source "$HERE/eww_lib.sh" || exit 1
 exec 9>"$(i3rc_runtime_dir)/i3rc-launch-eww.lock"
 flock -w 15 9 || exit 0   # another run is already doing this
 
-# The rebuild below costs ~1.5s, so skip it unless the bar is gone or sitting on
-# the wrong output — scr.mon follows output changes without a reopen.
+# The rebuild below costs ~1.5s, so skip it unless a bar is gone or sitting on
+# an output that no longer exists.
 eww_bar_is_current && exit 0
 
 # Sweep listeners orphaned by a daemon that died without reaping them. The match
@@ -35,5 +36,5 @@ sleep 0.5
 sleep 0.5
 
 # Waits out the cold-boot window (an empty --screen fails the open outright) and
-# confirms the bar appeared.
+# confirms every bar appeared.
 eww_open_bar

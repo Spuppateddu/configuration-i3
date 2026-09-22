@@ -135,11 +135,11 @@
                   bat?.capacity <= 80 ? "󰂀" : "󰁹"})
       (label :class "val bat" :xalign 0 :text "${bat?.capacity}%"))))
 
-;; --screen scr.mon, not :monitor 0, or the popup opens on a different output
-;; than the bar. Empty --screen fails the open, hence the fallback branch.
-(defwidget clockseg []
-  (button :class "seg" :onclick {scr.mon != "" ? "${EWW_CMD} open --toggle calendar --screen ${scr.mon}"
-                                               : "${EWW_CMD} open --toggle calendar"}
+;; --screen `mon`, this bar's own output, or the popup opens on another one —
+;; and an id per output, so two bars do not fight over one calendar window.
+(defwidget clockseg [mon]
+  (button :class "seg" :onclick {mon != "" ? "${EWW_CMD} open --toggle calendar --screen ${mon} --id cal-${mon}"
+                                           : "${EWW_CMD} open --toggle calendar"}
     ;; Two icon/value pairs rather than four flat labels: a flat row can only
     ;; have one spacing, so the date/time gap and the icon/value gap were forced
     ;; to be the same number. Nested, each pair keeps `.val`'s constant gap and
@@ -152,7 +152,7 @@
         (label :class "icon lavender" :text "󰥔")
         (label :class "val" :text {formattime(EWW_TIME, "%H:%M")})))))
 
-(defwidget status_island []
+(defwidget status_island [mon]
   (box :class "island status" :space-evenly false :spacing {scr.gap}
     ;; Leading divider, or the media title runs into the network icon. Guard on a
     ;; `box`: eww silently DROPS :visible on a defwidget — no error, divider stays.
@@ -165,7 +165,7 @@
     (sysinfo)
     (batteryseg)
     (vsep)
-    (clockseg)
+    (clockseg :mon mon)
     ;; fixed-width slot so tray icons appearing/leaving never shift the segments
     (box :space-evenly false :spacing {scr.group}
       (vsep)
@@ -182,26 +182,29 @@
 ;; ── Bar ──────────────────────────────────────────────────────────────────────
 ;; A neutral spacer, not a centerbox: workspaces stay left, status stays right,
 ;; and the slack in between collapses to zero on a narrow output.
-(defwidget bar []
+;; `mon` is the output this copy of the bar sits on; `others` is "true"/"false",
+;; drawing the other outputs' workspaces as cards — only when they have no bar.
+(defwidget bar [mon others]
   (box :class "bar ${scr.tier}" :space-evenly false
-    (wscard :wss {wsmap[scr.mon] ?: []} :detached false)
+    (wscard :wss {wsmap[mon] ?: []} :detached false)
     ;; `.value`, not `.value[]`: a list of lists, one card per other output.
     ;; to_entries keeps workspaces.sh's group_by order, so cards don't reshuffle.
     (detachedcards
-      :wssl {jq(wsmap, "[to_entries[] | select(.key != \"${scr.mon}\") | .value]")})
+      :wssl {jq(wsmap, "if ${others} then [to_entries[] | select(.key != \"${mon}\") | .value] else [] end")})
     ;; The one spacer sits HERE, left of the media island: media + status ride the
     ;; right edge as one block. After it instead, the title drifts to the middle.
     (box :hexpand true)
     (player_island)
-    (status_island)))
+    (status_island :mon mon)))
 
-;; Opened once, on the primary output: eww open bar --screen <name>
-(defwindow bar
+;; One per output in `all` mode, on the primary alone in `main` — scripts/
+;; eww_lib.sh opens it: eww open bar --id bar-<out> --screen <out> --arg mon=<out>
+(defwindow bar [mon others]
   :monitor 0
   :windowtype "dock"
   :geometry (geometry :x "0%" :y "0px" :width "100%" :height "21px" :anchor "top center")
   :reserve (struts :side "top" :distance "21px")
-  (bar))
+  (bar :mon mon :others others))
 
 (defwindow calendar
   :monitor 0

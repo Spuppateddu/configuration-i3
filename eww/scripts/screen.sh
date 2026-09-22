@@ -23,6 +23,13 @@ TITLE_MIN=16
 # The slot is a TARGET (`tw` per tier below), not "whatever is left over" — the
 # leftover only caps it on a narrow output. `tw` is the one number to change.
 
+# Read once: a change to it relaunches the bar, and this listener with it.
+BAR_MODE="$(bar_mode)"
+
+# The bars the outputs asked for when this listener started. A monitor plugged
+# in or out changes that list, and only launch_eww.sh can open or close a window.
+LAST_TARGETS="$(bar_targets)"
+
 LAST_MON="" LAST_W=""    # last output that resolved, for the guards in emit
 LAY_TIER="" LAY_TITLE="" # mirrored to $STATE by emit_changed for player.sh
 OUT=""                   # the JSON line emit built, read back by emit_changed
@@ -41,7 +48,7 @@ event_touches_output() {
 # see scripts/emit_lib.sh.
 emit() {
     local mon w gap group item tray base ipad tw
-    local wsn ndetached wscost
+    local wsn ndetached wscost targets
 
     # Skip the get_outputs round trip on workspace events — half the forks a
     # held-down workspace key costs.
@@ -63,6 +70,17 @@ emit() {
     fi
     LAST_MON=$mon LAST_W=$w
 
+    # A monitor came, went, or became the primary one: one bar too few or too
+    # many. Only on a real output event, so the first emit can never fire it and
+    # loop. setsid, because the relaunch kills the daemon and this script with it.
+    if [ -n "$1" ]; then
+        targets="$(bar_targets)"
+        if [ -n "$targets" ] && [ "$targets" != "$LAST_TARGETS" ]; then
+            LAST_TARGETS="$targets"
+            setsid "$REPO/scripts/launch_eww.sh" >/dev/null 2>&1 &
+        fi
+    fi
+
     # `base` = px of all but the title and the workspace tiles; `ipad` is an
     # island's padding-x. Over-estimating it only under-fills, so these run high.
     if   [ "$w" -ge 1800 ]; then
@@ -74,7 +92,8 @@ emit() {
     fi
 
     # Workspace tiles are the only variable-width part of the bar. Second field
-    # counts *other* outputs — eww.yuck draws one detached card per output.
+    # counts *other* outputs — eww.yuck draws one detached card per output, but
+    # only in `main` mode: with a bar per monitor there are no detached cards.
     read -r wsn ndetached < <(
         i3-msg -t get_workspaces 2>/dev/null | jq -r --arg mon "$mon" '
             "\(length) \([.[] | .output] | unique | map(select(. != $mon)) | length)"
@@ -82,6 +101,7 @@ emit() {
     )
     case "$wsn" in ''|*[!0-9]*) wsn=4 ndetached=0 ;; esac
     case "$ndetached" in ''|*[!0-9]*) ndetached=0 ;; esac
+    [ "$BAR_MODE" = main ] || ndetached=0
 
     # Equal squares, so the cost is a count — the label's length stopped
     # mattering when .ws became min-width == min-height.
