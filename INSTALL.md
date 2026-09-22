@@ -357,7 +357,7 @@ If the top bar doesn't appear:
 | `$mod+f` | Fullscreen |
 | `$mod+h/j/k/l` | Focus left/down/up/right |
 | `$mod+Shift+h/l` | Floating: snap to the left/right half — tiled: move window |
-| `$mod+Shift+k/j` | Floating: near-full height / standard size — tiled: move window |
+| `$mod+Shift+k/j` | Floating: full size below the bar (not fullscreen) / standard size — tiled: move window |
 | `$mod+Shift+←↓↑→` | Move window, never snaps (nudges a floating one) |
 | `$mod+Shift+space` | Float ↔ tile the focused window |
 | `$mod+Control+space` | Float ↔ tile the **whole desktop**, open windows included (reloads i3) |
@@ -394,8 +394,9 @@ If the top bar doesn't appear:
   `i3-msg '[floating] border normal <n>'`. Tiling mode has its own knob:
   `I3RC_TILE_BORDER_PX` (default 2), see the README's *Tiling mode*.
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
-  usable workspace, default 45/95 — a tall rectangle) and `I3RC_VMAX_H_PCT` (the
-  `$mod+Shift+k` height, default 96) read by `scripts/float.sh`; see the README's
+  usable workspace, default 45/95 — a tall rectangle) and `I3RC_VMAX_W_PCT` /
+  `I3RC_VMAX_H_PCT` (the `$mod+Shift+k` size, default 100/100) read by
+  `scripts/float.sh`; see the README's
   *Floating desktop* section.
 - **Where a new window lands** — `I3RC_PLACE_COLS` / `I3RC_PLACE_ROWS` (how many
   spots the random draw picks from, across the workspace and down it, default

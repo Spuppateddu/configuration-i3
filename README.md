@@ -87,7 +87,7 @@ The rest is tie-breaking you rarely notice:
 | | floating window | tiled window |
 |---|---|---|
 | `$mod+Shift+h` / `l` | snap to the left / right half | move it left / right |
-| `$mod+Shift+k` | grow to nearly full height, same width and column | move it up |
+| `$mod+Shift+k` | grow to the whole screen below the bar — still a floating window, not fullscreen | move it up |
 | `$mod+Shift+j` | back to the standard size, centred | move it down |
 
 The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they nudge
@@ -133,12 +133,13 @@ for the open windows), so each rule fires again on that window's next title
 change: a `move position center` there would fling windows you had placed by
 hand back to the middle, minutes after the reload.
 
-Seven knobs, all optional, exported before i3 starts:
+Eight knobs, all optional, exported before i3 starts:
 
 ```bash
 I3RC_STD_W_PCT=45     # standard window width, % of the usable workspace
 I3RC_STD_H_PCT=95     # ...and its height
-I3RC_VMAX_H_PCT=96    # height $mod+Shift+k grows a window to, % of the same
+I3RC_VMAX_W_PCT=100   # width $mod+Shift+k grows a window to, % of the same
+I3RC_VMAX_H_PCT=100   # ...and its height
 I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
 I3RC_PLACE_ROWS=5     # ...and down it; 1 x 1 turns the draw off
 I3RC_MAX_COVER_PCT=25 # how much of the window you came from a new one may hide
