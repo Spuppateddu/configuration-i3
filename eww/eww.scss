@@ -117,10 +117,34 @@ window { background: transparent; }
 
 // Reserved value slots, sized for the widest possible value so changing digits
 // never shift icons or neighbouring segments. This is what keeps the bar steady.
-.val.vol     { min-width: 42px; }  // fits "muted"
 .val.cpu     { min-width: 80px; }  // fits "CPU 100.0%"
 .val.ram     { min-width: 112px; } // fits "RAM 100.2/125G" (14 chars, the worst case)
 .val.bat     { min-width: 34px; }  // fits "100%"
+// Volume slider. Width is budgeted in scripts/screen.sh `base` (per tier) —
+// change both if you resize.
+// Padding = half the knob, or it is clipped at 0% and 100%. Margin + padding
+// keeps the old 7px gap after the icon.
+.volbar { margin-left: 2px; padding: 0 5px; }
+.volbar trough {
+  min-width: 120px;
+  min-height: 6px;
+  border-radius: 3px;
+  background: $surface1;
+}
+.volbar highlight {
+  border-radius: 3px;
+  background: $green;
+}
+.volbar slider {
+  min-width: 10px;
+  min-height: 10px;
+  margin: -2px 0;
+  border-radius: 5px;
+  background: $text;
+}
+.volbar.boost highlight { background: $peach; }
+.volbar.muted highlight { background: $red; }
+
 .blue     { color: $blue; }
 .green    { color: $green; }
 .red      { color: $red; }
@@ -155,7 +179,7 @@ window { background: transparent; }
   .power        { padding: 1px 5px; }
   .ptitle       { padding: 0 4px; }
 
-  .val.vol      { min-width: 38px; }
+  .volbar trough { min-width: 90px; }
   .val.cpu      { min-width: 74px; }
   .val.ram      { min-width: 104px; }
   .val.bat      { min-width: 32px; }
@@ -168,7 +192,7 @@ window { background: transparent; }
   .ptitle       { padding: 0 4px; }
 
   // At the floor: shrink further and changing values start shifting neighbours.
-  .val.vol      { min-width: 37px; }  // "muted"
+  .volbar trough { min-width: 70px; }
   .val.cpu      { min-width: 74px; }  // "CPU 100.0%"
   .val.ram      { min-width: 102px; } // "RAM 100.2/125G"
   .val.bat      { min-width: 30px; }  // "100%"

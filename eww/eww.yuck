@@ -88,19 +88,20 @@
            :text {net.kind == "wifi" ? "󰖩" : net.kind == "eth" ? "󰈀" : "󰖪"})))
 
 (defwidget volseg []
-  (eventbox :onscroll "$HOME/.i3rc/eww/scripts/volume.sh scroll {}"
-    ;; wpctl, not pactl: their default-sink notions can differ, and volume.sh
-    ;; reads the wpctl one back.
-    (button :class "seg" :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+  ;; Scroll and right click cover the whole segment; only the icon mutes.
+  ;; wpctl, not pactl: volume.sh reads back the same sink these write.
+  (eventbox :class "seg" :onscroll "$HOME/.i3rc/eww/scripts/volume.sh scroll {}"
             :onrightclick "pavucontrol &"
-      ;; No :spacing — the icon-to-value gap is `.val`'s margin in eww.scss, a
-      ;; constant on every output. Same for every icon/value pair below.
-      (box :space-evenly false
-        (label :class {vol.muted ? "icon red" : "icon green"}
-               :text {vol.muted ? "󰝟" :
-                      vol.level < 34 ? "󰕿" :
-                      vol.level < 67 ? "󰖀" : "󰕾"})
-        (label :class "val vol" :xalign 0 :text {vol.muted ? "muted" : "${vol.level}%"})))))
+    (box :space-evenly false :tooltip {vol.muted ? "muted" : "${vol.level}%"}
+      (button :class {vol.muted ? "icon red" : "icon green"}
+              :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+        {vol.muted ? "󰝟" : vol.level < 34 ? "󰕿" : vol.level < 67 ? "󰖀" : "󰕾"})
+      ;; Click or drag sets the level. Past 100% is boost (keys only): clamped
+      ;; here, shown by colour. :max 101 because eww's scale stops one short.
+      (scale :class {vol.muted ? "volbar muted" : vol.level > 100 ? "volbar boost" : "volbar"}
+             :valign "center" :min 0 :max 101
+             :value {vol.level > 100 ? 100 : vol.level}
+             :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))))
 
 (defwidget sysinfo []
   (box :class "pad" :space-evenly false :spacing {scr.group}

@@ -84,11 +84,11 @@ emit() {
     # `base` = px of all but the title and the workspace tiles; `ipad` is an
     # island's padding-x. Over-estimating it only under-fills, so these run high.
     if   [ "$w" -ge 1800 ]; then
-        LAY_TIER=wide;    gap=6 group=8 item=3 tray=120 base=980 ipad=8 tw=40
+        LAY_TIER=wide;    gap=6 group=8 item=3 tray=120 base=1066 ipad=8 tw=40
     elif [ "$w" -ge 1500 ]; then
-        LAY_TIER=compact; gap=4 group=6 item=3 tray=96  base=890 ipad=6 tw=32
+        LAY_TIER=compact; gap=4 group=6 item=3 tray=96  base=950 ipad=6 tw=32
     else
-        LAY_TIER=dense;   gap=4 group=6 item=6 tray=96  base=895 ipad=6 tw=24
+        LAY_TIER=dense;   gap=4 group=6 item=6 tray=96  base=936 ipad=6 tw=24
     fi
 
     # Workspace tiles are the only variable-width part of the bar. Second field
