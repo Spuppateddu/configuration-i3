@@ -26,9 +26,10 @@ TITLE_MIN=16
 # Read once: a change to it relaunches the bar, and this listener with it.
 BAR_MODE="$(bar_mode)"
 
-# The bars the outputs asked for when this listener started. A monitor plugged
-# in or out changes that list, and only launch_eww.sh can open or close a window.
-LAST_TARGETS="$(bar_targets)"
+# The bars the outputs asked for when this listener started, and where those
+# outputs sat. A monitor plugged in or out, moved, rotated or resized changes it,
+# and only launch_eww.sh can open, close or move a window.
+LAST_TARGETS="$(bar_state)"
 
 LAST_MON="" LAST_W=""    # last output that resolved, for the guards in emit
 LAY_TIER="" LAY_TITLE="" # mirrored to $STATE by emit_changed for player.sh
@@ -70,14 +71,16 @@ emit() {
     fi
     LAST_MON=$mon LAST_W=$w
 
-    # A monitor came, went, or became the primary one: one bar too few or too
-    # many. Only on a real output event, so the first emit can never fire it and
-    # loop. setsid, because the relaunch kills the daemon and this script with it.
+    # A monitor came, went, moved, turned, or became the primary one: a bar too
+    # few, too many, or left on the wrong output. Only on a real output event, so
+    # the first emit can never fire it and loop. setsid, because the relaunch kills
+    # the daemon and this script with it. The 1s lets ARandR's xrandr finish, so
+    # the bars open on the final layout rather than a half-applied one.
     if [ -n "$1" ]; then
-        targets="$(bar_targets)"
+        targets="$(bar_state)"
         if [ -n "$targets" ] && [ "$targets" != "$LAST_TARGETS" ]; then
             LAST_TARGETS="$targets"
-            setsid "$REPO/scripts/launch_eww.sh" >/dev/null 2>&1 &
+            setsid sh -c 'sleep 1; exec "$0"' "$REPO/scripts/launch_eww.sh" >/dev/null 2>&1 &
         fi
     fi
 

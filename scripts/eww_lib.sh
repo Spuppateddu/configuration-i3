@@ -76,6 +76,27 @@ bar_targets() {
     done < <(bar_outputs)
 }
 
+# Where every active output sits, "<name> <x> <y> <w> <h>" per line. A bar is
+# placed at fixed pixels when it opens, so moving, rotating or resizing a monitor
+# (ARandR) leaves it behind even when the output names stay the same — i3 then
+# docks it on whichever output now holds those pixels: two bars on one monitor,
+# none on the other. Saved next to the targets, so any layout change rebuilds.
+output_layout() {
+    i3-msg -t get_outputs 2>/dev/null | jq -r '
+        [.[] | select(.active)] | sort_by(.name)
+        | .[] | "\(.name) \(.rect.x) \(.rect.y) \(.rect.width) \(.rect.height)"' 2>/dev/null
+}
+
+# What the saved state must match for the bars to be current: the targets, then
+# the layout. Empty during the cold-boot window, exactly like bar_targets.
+bar_state() {
+    local targets
+    targets="$(bar_targets)"
+    [ -n "$targets" ] || return 0
+    printf '%s\n' "$targets"
+    output_layout
+}
+
 # Like bar_targets, but waits out the cold-boot window — an empty --screen fails
 # the open outright. The fallback is screen 0 (always valid) with no output name,
 # which puts every workspace in the detached cards until an event corrects it.
@@ -105,7 +126,7 @@ eww_bar_is_open() {
 eww_bar_is_current() {
     local want have
     eww_bar_is_open || return 1
-    want="$(bar_targets)"
+    want="$(bar_state)"
     [ -n "$want" ] || return 1
     # Tested before opening: redirections apply left to right, so `<missing
     # 2>/dev/null` still prints the failure before stderr is silenced.
@@ -113,7 +134,7 @@ eww_bar_is_current() {
     have="$(cat "$BAR_SCREEN_STATE")" || return 1
     [ "$want" = "$have" ] || return 1
     # The state file says what was opened; this says it is still there.
-    [ "$(eww_bar_ids | sort)" = "$(printf '%s\n' "$want" | awk '{print $1}' | sort)" ]
+    [ "$(eww_bar_ids | sort)" = "$(bar_targets | awk '{print $1}' | sort)" ]
 }
 
 # Open one bar per target output and confirm they appeared — the daemon may
@@ -137,7 +158,7 @@ eww_open_bar() {
                    2>/dev/null
         done <<<"$targets"
         if [ "$(eww_bar_ids | sort)" = "$want" ]; then
-            printf '%s\n' "$targets" >"$BAR_SCREEN_STATE"
+            { printf '%s\n' "$targets"; output_layout; } >"$BAR_SCREEN_STATE"
             return 0
         fi
         sleep 0.5
