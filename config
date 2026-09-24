@@ -93,7 +93,7 @@ bindsym $mod+c exec --no-startup-id ~/.i3rc/scripts/agent.sh
 
 # App launcher (rofi drun) and window switcher.
 bindsym $mod+d   exec --no-startup-id rofi -show drun -config ~/.i3rc/rofi/config.rasi
-bindsym $mod+Tab exec --no-startup-id rofi -show window -config ~/.i3rc/rofi/config.rasi
+bindsym $mod+Tab exec --no-startup-id sh -c 'rofi -show window -config ~/.i3rc/rofi/config.rasi && ~/.i3rc/scripts/warp_pointer.sh'
 
 # Toggle terminal (Alacritty) light/dark colour scheme.
 bindsym $mod+Shift+t exec --no-startup-id ~/.i3rc/scripts/theme.sh toggle
@@ -116,14 +116,17 @@ bindsym $mod+m        exec --no-startup-id alacritty -e ncmpcpp
 bindsym $mod+Shift+m  exec --no-startup-id ~/.i3rc/scripts/play_folder.sh
 
 # ── Focus ─────────────────────────────────────────────────────────────────
-bindsym $mod+$left  focus left
-bindsym $mod+$down  focus down
-bindsym $mod+$up    focus up
-bindsym $mod+$right focus right
-bindsym $mod+Left   focus left
-bindsym $mod+Down   focus down
-bindsym $mod+Up     focus up
-bindsym $mod+Right  focus right
+# Keyboard focus puts the pointer in the middle of the new window, or else
+# focus_follows_mouse hands focus back to whatever the pointer was left on.
+set $warp exec --no-startup-id ~/.i3rc/scripts/warp_pointer.sh
+bindsym $mod+$left  focus left; $warp
+bindsym $mod+$down  focus down; $warp
+bindsym $mod+$up    focus up; $warp
+bindsym $mod+$right focus right; $warp
+bindsym $mod+Left   focus left; $warp
+bindsym $mod+Down   focus down; $warp
+bindsym $mod+Up     focus up; $warp
+bindsym $mod+Right  focus right; $warp
 
 # ── Move / snap ───────────────────────────────────────────────────────────
 # Layout-aware, because i3 can't be: a floating window snaps to half-left /
@@ -148,7 +151,7 @@ bindsym $mod+s layout stacking
 bindsym $mod+w layout tabbed
 bindsym $mod+e layout toggle split
 bindsym $mod+Shift+space floating toggle
-bindsym $mod+space focus mode_toggle
+bindsym $mod+space focus mode_toggle; $warp
 bindsym $mod+a focus parent
 
 # Same key, whole desktop: floating desktop <-> plain tiling i3, existing
@@ -160,19 +163,19 @@ bindsym $mod+Shift+minus move scratchpad
 bindsym $mod+minus       scratchpad show
 
 # ── Workspaces ────────────────────────────────────────────────────────────
-bindsym $mod+Control+Right workspace next
-bindsym $mod+Control+Left  workspace prev
+bindsym $mod+Control+Right workspace next; $warp
+bindsym $mod+Control+Left  workspace prev; $warp
 
-bindsym $mod+1 workspace 1
-bindsym $mod+2 workspace 2
-bindsym $mod+3 workspace 3
-bindsym $mod+4 workspace 4
-bindsym $mod+5 workspace 5
-bindsym $mod+6 workspace 6
-bindsym $mod+7 workspace 7
-bindsym $mod+8 workspace 8
-bindsym $mod+9 workspace 9
-bindsym $mod+0 workspace 10
+bindsym $mod+1 workspace 1; $warp
+bindsym $mod+2 workspace 2; $warp
+bindsym $mod+3 workspace 3; $warp
+bindsym $mod+4 workspace 4; $warp
+bindsym $mod+5 workspace 5; $warp
+bindsym $mod+6 workspace 6; $warp
+bindsym $mod+7 workspace 7; $warp
+bindsym $mod+8 workspace 8; $warp
+bindsym $mod+9 workspace 9; $warp
+bindsym $mod+0 workspace 10; $warp
 
 bindsym $mod+Shift+1 move container to workspace 1
 bindsym $mod+Shift+2 move container to workspace 2
@@ -265,9 +268,9 @@ for_window [class=".*"] border normal 3
 default_floating_border normal 3
 default_border          pixel 3
 
-# Click to focus. Focus-follows-mouse fights overlapping windows: the pointer
-# resting over a background one steals focus from the window you are typing in.
-focus_follows_mouse no
+# Focus follows the pointer. With overlapping floating windows, passing over one
+# focuses and raises it. Keyboard focus moves the pointer along: $warp below.
+focus_follows_mouse yes
 
 # Minimise-ish — i3 has none, the scratchpad is the closest thing. Super is
 # otherwise unbound ($mod is Alt); $mod+minus brings stashed windows back.

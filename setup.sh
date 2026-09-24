@@ -94,6 +94,8 @@ PACKAGES=(
     git build-essential pkg-config
     libgtk-3-dev libdbusmenu-gtk3-dev
     jq
+    # scripts/warp_pointer.sh moves the pointer to the window focused by keyboard.
+    xdotool
     picom
     # feh sets the root background; xsetroot does not work under picom.
     feh
