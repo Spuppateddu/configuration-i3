@@ -24,7 +24,11 @@ STATE="$(i3rc_runtime_dir)/i3rc-window-mode.state"
 
 # Border width the mode switches to. `pixel` drops the title bar too, so the
 # frame reads as "this window is armed" from across the screen.
-MODE_BORDER_PX=${I3RC_MODE_BORDER_PX:-6}
+MODE_BORDER_PX=${I3RC_MODE_BORDER_PX:-8}
+
+# The black dashes drawn over that border; its pid, so `off` can stop it.
+DASHES="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/mode_dashes.py"
+DASHES_PID="$(i3rc_runtime_dir)/i3rc-window-mode-dashes.pid"
 
 # Pixels one keypress moves an edge, and the smallest frame a window can shrink
 # to — below that a window is a stub you can no longer aim at with the mouse.
@@ -34,11 +38,21 @@ MIN_H=${I3RC_MODE_MIN_H:-80}
 
 JQ_DESC='def desc: recurse(.nodes[]?, .floating_nodes[]?);'
 
-# "<con_id> <floating> <border-style> <border-width>" for the focused window.
+# "<con_id> <floating> <border-style> <border-width> <x-window>" for the focused window.
 focused_border() {
     i3-msg -t get_tree | jq -r "$JQ_DESC"'
         [ desc | select(.focused == true)
-        | "\(.id) \(.floating) \(.border) \(.current_border_width)" ] | first // empty'
+        | "\(.id) \(.floating) \(.border) \(.current_border_width) \(.window)" ] | first // empty'
+}
+
+# Stop the dashes. The cmdline check keeps a stale pid from killing a stranger.
+dashes_off() {
+    local pid
+    [ -s "$DASHES_PID" ] && read -r pid < "$DASHES_PID" || pid=""
+    case $pid in ''|*[!0-9]*) ;; *)
+        grep -qF "mode_dashes.py" "/proc/$pid/cmdline" 2>/dev/null && kill "$pid" 2>/dev/null ;;
+    esac
+    : > "$DASHES_PID"
 }
 
 # "<ws-x> <ws-y> <ws-w> <ws-h> <frame-x> <frame-y> <frame-w> <frame-h>" for con
@@ -137,7 +151,7 @@ step() {
 
 case "${1:-off}" in
     on)
-        read -r id floating style width < <(focused_border) || exit 0
+        read -r id floating style width xid < <(focused_border) || exit 0
         [ -n "${width:-}" ] || exit 0
 
         # A floating window owns its four edges and its position, so hjkl can
@@ -153,8 +167,15 @@ case "${1:-off}" in
         i3-msg "[con_id=$id] border pixel $MODE_BORDER_PX" >/dev/null
         [ -n "${fh:-}" ] && apply_frame "$id" "$fx" "$fy" "$fw" "$fh"
         i3-msg "mode \"$mode\"" >/dev/null
+
+        dashes_off
+        if [ "${xid:-null}" != null ] && command -v python3 >/dev/null; then
+            setsid python3 "$DASHES" "$xid" "$MODE_BORDER_PX" >/dev/null 2>&1 &
+            printf '%s\n' "$!" > "$DASHES_PID"
+        fi
         ;;
     off)
+        dashes_off
         if [ -s "$STATE" ]; then
             read -r id style width < "$STATE"
             read -r _ _ _ _ fx fy fw fh < <(frame_of "$id") || true
@@ -170,6 +191,7 @@ case "${1:-off}" in
     clear)
         # i3-start form: put back a border left thick by a crash or by an i3
         # restart while the mode was on. No mode to leave at this point.
+        dashes_off
         if [ -s "$STATE" ]; then
             read -r id style width < "$STATE"
             restore "$id" "$style" "$width"

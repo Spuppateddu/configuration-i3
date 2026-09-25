@@ -96,6 +96,8 @@ PACKAGES=(
     jq
     # scripts/warp_pointer.sh moves the pointer to the window focused by keyboard.
     xdotool
+    # scripts/mode_dashes.py draws the dashed border of the $mod+r mode.
+    python3-gi python3-gi-cairo gir1.2-gtk-3.0
     picom
     # feh sets the root background; xsetroot does not work under picom.
     feh
