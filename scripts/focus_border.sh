@@ -14,7 +14,7 @@ PIDFILE="$(i3rc_runtime_dir)/i3rc-focus-border.pid"
 
 # The catch-all width config gives every window, and what the focused one grows
 # to. Only these two widths are ever touched, so a per-app `pixel 1` and
-# window_mode.sh's 8px cue both stay exactly as they are.
+# window_mode.py's preview box (its own window) stay exactly as they are.
 BASE_PX=${I3RC_BASE_BORDER_PX:-3}
 FOCUS_PX=${I3RC_FOCUS_BORDER_PX:-4}
 

@@ -95,7 +95,7 @@ it a few pixels. `$mod+Shift+space` tiles the focused window, and `Super+Down`
 stashes it in the scratchpad — the closest thing i3 has to a minimise.
 
 `$mod+r` is layout-aware the same way, through
-[`scripts/window_mode.sh`](./scripts/window_mode.sh): a tiled window gets i3's
+[`scripts/window_mode.py`](./scripts/window_mode.py): a tiled window gets i3's
 own resize mode, a floating one gets a mode that sizes **one edge at a time**
 and moves the window with the arrow keys.
 
@@ -110,15 +110,24 @@ Sizing never touches the opposite edge, so you size a window against whichever
 corner you want it in. Growing stops dead at the usable workspace and a move
 stops flush against it, so a floating window can never end up off the monitor;
 shrinking always works, down to 120×80. That makes the whole window keyboard-
-only: size it with `hjkl`, then place it with the arrows. The focused window
-wears a thick frame while the mode is on. i3 cannot clamp a resize or a move
-itself, hence a script behind each keypress.
+only: size it with `hjkl`, then place it with the arrows.
+
+The keys never touch the window directly. Every key in the mode is a `nop`, and
+`window_mode.py` — one daemon, started by `exec_always` — receives each press as
+an i3 **binding event**: no process is spawned, so a held key at 50 repeats/s is
+kept up with instead of queueing a 40ms script per press behind it. On each
+press the daemon moves a translucent box showing where the frame will be; the
+real `resize`/`move` is sent once the keys pause (80ms), and at most every 250ms
+while a key is held. So the app re-lays out and picom repaints a few times per
+gesture rather than fifty times a second, and the box doubles as the mode cue.
+Tiled windows go the same way with i3's own `resize`, batched into one command.
+Step is 20px per press (`I3RC_MODE_STEP_PX`), and the daemon reads the box's
+colour from the last `client.focused` line, `*.local` included.
 
 Every window wears a 3px border; the focused one wears 4px, redrawn by
 [`scripts/focus_border.sh`](./scripts/focus_border.sh) on every `window::focus`
 event, because i3 can only vary a border's *colour* with focus, not its width.
-It touches those two widths alone, so a per-app `pixel 1` and the 6px `$mod+r`
-cue are never disturbed.
+It touches those two widths alone, so a per-app `pixel 1` is never disturbed.
 
 Nothing is hardcoded to one screen. Every number comes from the live workspace
 rect, which i3 has already shrunk by the eww bar's strut, so the same commit is
@@ -190,7 +199,7 @@ unfocused window: it sorts later, and i3 takes the last `client.*` line. Going
 back to floating deletes the file, so the rolled unfocused colour returns.
 
 `$mod+Shift+h/j/k/l` and `$mod+r` keep working in tiling mode — with nothing
-floating, `float.sh` and `window_mode.sh` always take their `move`/i3-resize
+floating, `float.sh` and `window_mode.py` always take their `move`/i3-resize
 branch.
 
 ## Machine-specific settings
@@ -386,7 +395,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── float.sh               # floating desktop: places new windows, snap keys
     ├── desktop_mode.sh        # $mod+Control+space: float ↔ tile the whole desktop
     ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
-    ├── window_mode.sh         # $mod+r: resize+move if floating, resize if tiled
+    ├── window_mode.py         # $mod+r daemon: preview box, batched resize/move
     ├── focus_border.sh        # thicker border on the focused window (daemon)
     ├── restart_kbd.sh         # key repeat + Caps→Ctrl, re-applied on hotplug
     └── restart_xbanish.sh     # hide pointer while typing, show on mouse move

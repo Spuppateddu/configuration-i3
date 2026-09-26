@@ -45,9 +45,10 @@ exec_always --no-startup-id ~/.i3rc/scripts/restart_xbanish.sh
 # Keyboard: fast repeat + Caps→Ctrl, reapplied when a keyboard is (re)attached.
 exec_always --no-startup-id ~/.i3rc/scripts/restart_kbd.sh
 
-# Put back a border left thick by a crash, or by an i3 restart while the $mod+r
-# window mode was on — nothing else would ever restore it.
-exec_always --no-startup-id ~/.i3rc/scripts/window_mode.sh clear
+# The $mod+r window mode. One daemon fed by i3's binding events, so a held key
+# never queues scripts behind it; it moves a preview box on each press and
+# resizes the window itself only when the keys pause. See the script.
+exec_always --no-startup-id ~/.i3rc/scripts/window_mode.py watch
 
 # Screensaver stays off, so still no idle lock — xss-lock only fires on suspend.
 # DPMS off after 50min (-dpms reverts); idle-poweroff kills the machine 10min
@@ -193,54 +194,56 @@ bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'Exit i3? This ends your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
 
-# ── Resize mode ───────────────────────────────────────────────────────────
+# ── Window mode ($mod+r) ──────────────────────────────────────────────────
+# Every key here is a `nop`: i3 does nothing itself and emits a binding event,
+# which window_mode.py turns into the step. That is what keeps a held key fast —
+# no process per press — and lets the daemon batch the presses into one resize.
+# Tiled: i3's own resize, hjkl and the arrows alike, STEP px per press.
 mode "resize" {
-    bindsym $left  resize shrink width 10 px or 10 ppt
-    bindsym $down  resize grow   height 10 px or 10 ppt
-    bindsym $up    resize shrink height 10 px or 10 ppt
-    bindsym $right resize grow   width 10 px or 10 ppt
+    bindsym $left  nop window_mode shrink width
+    bindsym $down  nop window_mode grow   height
+    bindsym $up    nop window_mode shrink height
+    bindsym $right nop window_mode grow   width
 
-    bindsym Left  resize shrink width 10 px or 10 ppt
-    bindsym Down  resize grow   height 10 px or 10 ppt
-    bindsym Up    resize shrink height 10 px or 10 ppt
-    bindsym Right resize grow   width 10 px or 10 ppt
+    bindsym Left  nop window_mode shrink width
+    bindsym Down  nop window_mode grow   height
+    bindsym Up    nop window_mode shrink height
+    bindsym Right nop window_mode grow   width
 
-    bindsym Return exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
-    bindsym Escape exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
-    bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
+    bindsym Return nop window_mode off
+    bindsym Escape nop window_mode off
+    bindsym $mod+r nop window_mode off
 }
 
-# ── Resize mode, floating ─────────────────────────────────────────────────
-# Same $mod+r: on a floating window window_mode.sh sends you here instead. One
-# edge per key — hjkl pushes it out, HJKL pulls the same edge back in — and the
-# arrows move the whole window, size untouched. Both stop at the workspace, so
-# the window never leaves the monitor. i3 cannot clamp, hence a script per
-# keypress. The whole window is keyboard-reachable here: size with hjkl, place
-# it with the arrows, Return to leave.
+# Floating: same $mod+r, window_mode.py sends you here instead. One edge per key
+# — hjkl pushes it out, HJKL pulls the same edge back in — and the arrows move
+# the whole window, size untouched. Both stop at the workspace, so the window
+# never leaves the monitor. The whole window is keyboard-reachable here: size
+# with hjkl, place it with the arrows, Return to leave.
 mode "resize floating" {
-    bindsym $left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow left
-    bindsym $down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow down
-    bindsym $up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow up
-    bindsym $right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh grow right
+    bindsym $left  nop window_mode grow left
+    bindsym $down  nop window_mode grow down
+    bindsym $up    nop window_mode grow up
+    bindsym $right nop window_mode grow right
 
     # The shifted keysym, not Shift+$left: i3 matches what the key produces.
-    bindsym Shift+H exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink left
-    bindsym Shift+J exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink down
-    bindsym Shift+K exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink up
-    bindsym Shift+L exec --no-startup-id ~/.i3rc/scripts/window_mode.sh shrink right
+    bindsym Shift+H nop window_mode shrink left
+    bindsym Shift+J nop window_mode shrink down
+    bindsym Shift+K nop window_mode shrink up
+    bindsym Shift+L nop window_mode shrink right
 
     # The arrows move instead of resizing — they used to repeat hjkl, which
     # left half the keyboard doing nothing.
-    bindsym Left  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move left
-    bindsym Down  exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move down
-    bindsym Up    exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move up
-    bindsym Right exec --no-startup-id ~/.i3rc/scripts/window_mode.sh move right
+    bindsym Left  nop window_mode move left
+    bindsym Down  nop window_mode move down
+    bindsym Up    nop window_mode move up
+    bindsym Right nop window_mode move right
 
-    bindsym Return exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
-    bindsym Escape exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
-    bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/window_mode.sh off
+    bindsym Return nop window_mode off
+    bindsym Escape nop window_mode off
+    bindsym $mod+r nop window_mode off
 }
-bindsym $mod+r exec --no-startup-id ~/.i3rc/scripts/window_mode.sh on
+bindsym $mod+r nop window_mode on
 
 # ── Firefox Picture-in-Picture ────────────────────────────────────────────
 # 'sticky' pins the PiP player to the output instead of the workspace that
