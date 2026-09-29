@@ -72,6 +72,9 @@ bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
 bindsym XF86AudioPlay exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh toggle
 bindsym XF86AudioNext exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh next
 bindsym XF86AudioPrev exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh prev
+# $mod+p = play/pause for keyboards without media keys. It takes Alt+p from
+# Claude Code's model picker (/model still works); no other tool uses it.
+bindsym $mod+p exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh toggle
 
 # ── Vim-style directions ──────────────────────────────────────────────────
 set $up    k
