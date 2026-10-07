@@ -48,6 +48,8 @@ fi
 
 mpc -q clear
 mpc -q add "$target"
+# music_sync.sh tops the queue up from this folder as new songs arrive.
+printf '%s\n' "$folder" > "$HOME/.local/share/mpd/queue_folder"
 mpc -q random on
 mpc -q consume off
 mpc -q repeat on

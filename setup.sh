@@ -409,6 +409,15 @@ if command -v systemctl >/dev/null 2>&1; then
         run systemctl --user disable --now mpd.service || true
     fi
 
+    # Rides along with mpd and adds new songs to the queue. Enabling by path also
+    # links it into ~/.config/systemd/user; WantedBy=mpd.service keeps it on demand.
+    if systemctl --user is-enabled mpd-queue-sync.service >/dev/null 2>&1; then
+        skip "mpd-queue-sync.service already enabled."
+    else
+        run systemctl --user enable "$REPO/mpd/mpd-queue-sync.service" \
+            || warn "Could not enable mpd-queue-sync.service"
+    fi
+
     # dex's XDG autostart already runs the bridge, so the systemd copy is masked —
     # two would race for one bus name. Masked: a --user disable cannot reach it.
     for svc in mpdris2.service mpDris2.service; do

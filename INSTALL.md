@@ -223,6 +223,15 @@ Once started, mpd stays up until logout. Stop it by hand with `systemctl --user
 stop mpd.service` — the socket stays armed and will start it again on the next
 connect.
 
+New songs reach the queue on their own. `mpd-queue-sync.service` starts and stops
+with mpd: it rescans the library when mpd starts, then adds each new song to the
+queue, so the queue always holds every song of the folder `$mod+Shift+m` last
+played (the whole library by default). The song playing never stops.
+
+```bash
+systemctl --user enable ~/.i3rc/mpd/mpd-queue-sync.service
+```
+
 First library scan (this starts mpd):
 
 ```bash

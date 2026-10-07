@@ -1,0 +1,14 @@
+# Starts and stops with mpd (PartOf/WantedBy), so the socket keeps it on demand.
+# Linked and enabled by setup.sh; the work is in scripts/music_sync.sh.
+[Unit]
+Description=Add new songs to mpd's queue
+After=mpd.service
+PartOf=mpd.service
+
+[Service]
+ExecStart=%h/.i3rc/scripts/music_sync.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=mpd.service
