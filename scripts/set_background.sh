@@ -5,6 +5,10 @@
 # which only feh updates. feh has no solid mode, hence the tiny tiled image.
 set -euo pipefail
 
+# A wallpaper from best-linux-environment's wallpapers/ wins when there is one;
+# b-wallpaper fails with no images (or no install), and the solid colour follows.
+"$HOME/.local/bin/b-wallpaper" restore 2>/dev/null && exit 0
+
 # Gruvbox Material Dark background #1d2021 -> RGB bytes 29,32,33 (matches theme.sh).
 img="$HOME/.cache/i3-bg.ppm"
 { printf 'P6\n16 16\n255\n'; for _ in $(seq 1 256); do printf '\x1d\x20\x21'; done; } > "$img"

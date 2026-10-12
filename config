@@ -23,7 +23,7 @@ exec_always --no-startup-id picom --config ~/.i3rc/picom/picom.conf
 # Second -config = this machine's font size (git-ignored, from
 # best-linux-environment's fonts.local). Later file wins; a missing one is fine.
 exec_always --no-startup-id dunst -config ~/.i3rc/dunst/dunstrc -config ~/.i3rc/dunst/size.local.conf
-# Gruvbox dark root window — no wallpaper. Uses feh (not xsetroot): picom
+# Wallpaper via b-wallpaper, else the Gruvbox dark root. Uses feh (not xsetroot): picom
 # composites the _XROOTPMAP_ID pixmap, which only feh updates. See the script.
 exec_always --no-startup-id ~/.i3rc/scripts/set_background.sh
 exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
