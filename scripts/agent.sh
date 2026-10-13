@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Open a terminal running the coding agent this machine uses, in its own folder.
+# Open the coding agent this machine uses, in its own folder, as a new window of
+# a tmux session named after it — reusing the terminal already showing it.
 # Both from config.local: `set $agent claude`, `set $agent_desk ~/agent-desk`.
 
 set -u
@@ -31,6 +32,24 @@ DESK=$(i3rc_agent_desk "$REPO") ||
 
 mkdir -p -- "$DESK" || fail "Cannot create the agent folder: $DESK"
 
+command -v tmux >/dev/null 2>&1 || fail "tmux not installed"
+
+# One tmux session per agent, named after it: every $mod+c is a new window there,
+# so closing the terminal loses nothing and `tmux attach -t claude` gets it back.
+SESSION=${argv[0]##*/}
+CLASS=ble-agent
+
+if tmux has-session -t "=$SESSION" 2>/dev/null; then
+    tmux new-window -t "=$SESSION:" -n "$SESSION" -c "$DESK" "${argv[@]}" ||
+        fail "Cannot open a window in tmux session $SESSION"
+else
+    tmux new-session -d -s "$SESSION" -n "$SESSION" -c "$DESK" "${argv[@]}" ||
+        fail "Cannot start tmux session $SESSION"
+fi
+
+# Terminal already on screen: the new window shows up in it, just bring it forward.
+i3-msg -q "[instance=\"$CLASS\"] focus" 2>/dev/null && exit 0
+
 # --working-directory, not i3's cwd: i3 passes on whatever directory it was
 # started from — $HOME on a login, but not after a restart from a terminal.
-exec alacritty --working-directory "$DESK" -e "${argv[@]}"
+exec alacritty --class "$CLASS" --working-directory "$DESK" -e tmux attach-session -t "=$SESSION"

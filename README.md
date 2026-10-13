@@ -231,7 +231,7 @@ editing with `$mod+Shift+c`.
 
 ### The coding agent (`$mod+c`)
 
-`$mod+c` opens a terminal in a folder of its own running a coding agent. Which
+`$mod+c` opens a coding agent, in a folder of its own, inside tmux. Which
 agent is a per-machine choice, so the shared config names none: press the key
 with nothing configured and you get a notification saying so, and no window.
 
@@ -256,6 +256,14 @@ It reads the file rather than taking `$agent` as an argument because i3
 substitutes variables as it parses, and `include ~/.i3rc/*.local` is the very
 last line of the config — a `set` there would arrive after the binding above it.
 So the value can't reach the `bindsym`, only a script running later can see it.
+
+**It lives in tmux.** Each press is a new window of a tmux session named after
+the agent (`claude` for `claude --continue`), created on the first press. If the
+terminal showing that session is already open, the new window appears there and
+that terminal gets focus — no new i3 window. Otherwise a terminal opens attached
+to the session. Closing the terminal closes nothing: the agents keep running, and
+the next `$mod+c`, or `tmux attach -t claude` from anywhere, brings them back.
+A window closes when its agent exits; the session ends with its last window.
 
 The command is split on spaces and run directly, without a shell. For a pipe, a
 `&&` or an environment variable, put it in a script and name the script instead.
@@ -386,7 +394,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
-    ├── agent.sh               # $mod+c: agent terminal, config.local's $agent
+    ├── agent.sh               # $mod+c: agent in tmux, config.local's $agent
     ├── agent_lib.sh           # shared: reads $agent / $agent_desk (sourced)
     ├── net_lib.sh             # shared: interface pick + wifi SSID (sourced)
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
