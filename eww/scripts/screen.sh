@@ -99,7 +99,8 @@ emit() {
     # only in `main` mode: with a bar per monitor there are no detached cards.
     read -r wsn ndetached < <(
         i3-msg -t get_workspaces 2>/dev/null | jq -r --arg mon "$mon" '
-            "\(length) \([.[] | .output] | unique | map(select(. != $mon)) | length)"
+            map(select(.name | startswith("off-") | not))
+            | "\(length) \([.[] | .output] | unique | map(select(. != $mon)) | length)"
         ' 2>/dev/null
     )
     case "$wsn" in ''|*[!0-9]*) wsn=4 ndetached=0 ;; esac

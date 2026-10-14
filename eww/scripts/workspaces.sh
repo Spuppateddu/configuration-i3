@@ -10,10 +10,12 @@ source "$REPO/scripts/emit_lib.sh" || exit 1   # resubscribe_loop
 #
 # num == -1 means no numeric prefix, and `workspace number -1` is a silent
 # no-op, so those switch by name; `number` otherwise, since it survives renames.
+# off-N is a workspace b-blank turned off (best-linux-environment): it holds N's windows, unseen.
 emit() {
     i3-msg -t get_workspaces 2>/dev/null | jq -c '
         def i3str: "\"" + (gsub("\\\\"; "\\\\") | gsub("\""; "\\\"")) + "\"";
-        group_by(.output)
+        map(select(.name | startswith("off-") | not))
+        | group_by(.output)
         | map({key: .[0].output,
                value: map({num, name,
                            label: (.name | sub("^[0-9]+: *"; "")),
