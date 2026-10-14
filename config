@@ -83,7 +83,9 @@ set $left  h
 set $right l
 
 floating_modifier $mod
-tiling_drag modifier titlebar
+# Tiled windows never move by mouse: Alt held for a shortcut plus a palm on the
+# trackpad dragged them around. Floating ones still move with $mod+drag.
+tiling_drag off
 
 # ── Core bindings ─────────────────────────────────────────────────────────
 bindsym $mod+Return exec alacritty
