@@ -326,20 +326,20 @@ link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-3.0/settings.ini"
 link "$REPO/gtk/gtk.css"          "$HOME/.config/gtk-4.0/gtk.css"
 link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-4.0/settings.ini"
 
-# ── 4b. Per-machine font sizes ────────────────────────────────────────────
+# ── 4b. Per-machine font sizes and bar colour ──────────────────────────────
 # eww.scss and gtk.css import these unconditionally, and a missing scss import is
 # a compile error — so they exist, empty, whatever writes them. The GTK ones sit
 # beside the symlinks above, which is where GTK resolves a relative @import.
-step "Checking the per-machine font-size overrides"
-for f in "$REPO/eww/size.local.scss" \
+step "Checking the per-machine font-size and colour overrides"
+for f in "$REPO/eww/size.local.scss" "$REPO/eww/color.local.scss" \
          "$HOME/.config/gtk-3.0/size.local.css" "$HOME/.config/gtk-4.0/size.local.css"; do
     if [[ -e "$f" ]]; then
         skip "${f/#$HOME/\~} already there."
     elif [[ "$DRY_RUN" == true ]]; then
         printf '%s  would write:%s %s (empty)\n' "$C_DIM" "$C_OFF" "${f/#$HOME/\~}"
     else
-        printf '/* Empty. Sizes come from best-linux-environment fonts.local. */\n' > "$f"
-        ok "seeded ${f/#$HOME/\~} — empty, so this repo's own sizes apply."
+        printf '/* Empty. Filled by best-linux-environment (fonts.local, settings.local). */\n' > "$f"
+        ok "seeded ${f/#$HOME/\~} — empty, so this repo's own values apply."
     fi
 done
 

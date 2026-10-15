@@ -222,3 +222,6 @@ window { background: transparent; }
 // This machine's font size, git-ignored and written from best-linux-environment's
 // fonts.local. Last, so it wins; setup.sh creates it empty when it is missing.
 @import "size.local.scss";
+// The bar's colour, from best-linux-environment's BLE_BAR_COLOR (b-wallpaper
+// writes it, so it can follow the wallpaper). Git-ignored, seeded empty too.
+@import "color.local.scss";

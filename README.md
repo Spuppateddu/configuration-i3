@@ -124,10 +124,8 @@ Tiled windows go the same way with i3's own `resize`, batched into one command.
 Step is 20px per press (`I3RC_MODE_STEP_PX`), and the daemon reads the box's
 colour from the last `client.focused` line, `*.local` included.
 
-Every window wears a 3px border; the focused one wears 4px, redrawn by
-[`scripts/focus_border.sh`](./scripts/focus_border.sh) on every `window::focus`
-event, because i3 can only vary a border's *colour* with focus, not its width.
-It touches those two widths alone, so a per-app `pixel 1` is never disturbed.
+Every window wears the same 3px border, focused or not: focus changes only its
+colour. A wider focused border would resize the window on each focus change.
 
 Nothing is hardcoded to one screen. Every number comes from the live workspace
 rect, which i3 has already shrunk by the eww bar's strut, so the same commit is
@@ -404,7 +402,6 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── desktop_mode.sh        # $mod+Control+space: float ↔ tile the whole desktop
     ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
     ├── window_mode.py         # $mod+r daemon: preview box, batched resize/move
-    ├── focus_border.sh        # thicker border on the focused window (daemon)
     ├── restart_kbd.sh         # key repeat + Caps→Ctrl, re-applied on hotplug
     └── restart_xbanish.sh     # hide pointer while typing, show on mouse move
 ```

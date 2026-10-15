@@ -20,6 +20,7 @@ CLAUDE.md
 # Per-PC font sizes, written by best-linux-environment's fonts.local. The GTK one
 # is not here: it lives beside the ~/.config symlinks, where GTK resolves it.
 size.local.scss
+color.local.scss
 size.local.rasi
 size.local.conf
 
