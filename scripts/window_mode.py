@@ -9,13 +9,13 @@
 # millisecond. Holding a key at 50 repeats/s used to queue 40ms scripts behind
 # each other, and the window kept moving after the key was up.
 #
-# The window itself is not resized on every press. A translucent box shows the
-# frame the window *will* have and follows the keys instantly; the real
+# The window itself is not resized on every press. Floating, a translucent box
+# shows the frame the window *will* have and follows the keys instantly; the real
 # `resize set` / `move position` goes out once the keys pause (DEBOUNCE_MS) and,
 # while a key is held, at most every MAX_WAIT_MS. So the app re-lays out and
 # picom repaints a handful of times per gesture instead of fifty times a second.
-# The box is also the mode cue — it replaces the thick border the mode used to
-# put on, which cost the window two re-layouts of its own.
+# The box is also the mode cue. Tiled, the cue is only the border: a frame in the
+# floating desktop's unfocused colour drawn over it (i3 cannot recolour live).
 #
 # Growing and moving stop at the usable workspace — the rect i3 has already
 # shrunk by the bar's strut — so a floating window can never end up off the
@@ -146,16 +146,18 @@ def locate(tree, con_id=None):
     return None
 
 
-def focused_colour():
-    """client.focused's border colour, the way i3 reads it: config first, then
-    every *.local in glob order, last line wins."""
+def client_colour(name, skip=()):
+    """client.<name>'s border colour, the way i3 reads it: config first, then
+    every *.local in glob order, last line wins. Files named in skip are left out."""
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     colour = DEFAULT_COLOUR
     for path in [os.path.join(root, "config")] + sorted(glob.glob(os.path.join(root, "*.local"))):
+        if os.path.basename(path) in skip:
+            continue
         try:
             with open(path) as f:
                 for line in f:
-                    m = re.match(r"\s*client\.focused\s+(#[0-9a-fA-F]{6})", line)
+                    m = re.match(r"\s*client\.%s\s+(#[0-9a-fA-F]{6})" % name, line)
                     if m:
                         colour = m.group(1)
         except OSError:
@@ -166,10 +168,14 @@ def focused_colour():
 
 # ── Preview box ─────────────────────────────────────────────────────────────
 class Box:
-    """A click-through override-redirect window drawn as a tinted frame."""
+    """A click-through override-redirect window: a tinted box (floating), or
+    only a frame of the border's width laid over the border (tiled)."""
 
     def __init__(self):
-        self.rgb = focused_colour()
+        self.box_rgb = client_colour("focused")
+        # The floating desktop's unfocused colour: 90-tiling-mode.local greys it.
+        self.frame_rgb = client_colour("unfocused", skip=("90-tiling-mode.local",))
+        self.border = 0            # 0: tinted box; else the frame's width in px
         self.win = Gtk.Window(type=Gtk.WindowType.POPUP)  # i3 leaves it alone
         screen = self.win.get_screen()
         self.alpha = screen.is_composited() and screen.get_rgba_visual() is not None
@@ -184,8 +190,13 @@ class Box:
 
     def draw(self, widget, cr):
         w, h = widget.get_allocated_width(), widget.get_allocated_height()
-        r, g, b = self.rgb
         cr.set_operator(cairo.OPERATOR_SOURCE)
+        if self.border:
+            # The window shape already cuts the middle out: paint what is left.
+            cr.set_source_rgb(*self.frame_rgb)
+            cr.paint()
+            return True
+        r, g, b = self.box_rgb
         cr.set_source_rgba(r, g, b, BOX_FILL_ALPHA if self.alpha else 1.0)
         cr.paint()
         cr.set_source_rgba(r, g, b, 1.0)
@@ -194,15 +205,29 @@ class Box:
         cr.stroke()
         return True
 
-    def show(self, geo):
+    def show(self, geo, border=0):
         x, y, w, h = geo
-        if geo != self.geo:
-            self.geo = geo
+        if geo != self.geo or border != self.border:
+            self.geo, self.border = geo, border
             self.win.move(x, y)
             self.win.resize(max(1, w), max(1, h))
+            self.reshape(w, h)
+            self.win.queue_draw()
         self.win.show()
         # i3 puts a moved floating frame back on top, which would bury us.
         self.win.get_window().raise_()
+
+    def reshape(self, w, h):
+        """Frame: a window shape with the middle cut out, so the app shows
+        through with or without a compositor. Box: the full rectangle."""
+        gdk = self.win.get_window()
+        b = self.border
+        if not b or w <= 2 * b or h <= 2 * b:
+            gdk.shape_combine_region(None, 0, 0)
+            return
+        region = cairo.Region(cairo.RectangleInt(0, 0, w, h))
+        region.subtract(cairo.RectangleInt(b, b, w - 2 * b, h - 2 * b))
+        gdk.shape_combine_region(region, 0, 0)
 
     def hide(self):
         self.geo = None
@@ -218,6 +243,7 @@ class Mode:
         self.floating = False
         self.frame = None          # the box: where the window will be
         self.ws = None             # usable workspace rect
+        self.border = 0            # tiled: the window's border width, for the frame
         self.pending = None        # floating: True; tiled: {(way, dir): count}
         self.first_pending = 0.0
         self.flush_src = None
@@ -241,7 +267,8 @@ class Mode:
             return
         con, self.floating, self.frame, self.ws = found
         self.con_id = con["id"]
-        self.box.show(self.frame)
+        self.border = con.get("current_border_width") or 0
+        self.show_box()
         self.ipc.command('mode "resize floating"' if self.floating else 'mode "resize"')
         self.sync_src = GLib.timeout_add(SYNC_MS, self.sync)
 
@@ -268,13 +295,21 @@ class Mode:
         if not found:
             self.off()
             return False
-        _, floating, self.frame, self.ws = found
+        con, floating, self.frame, self.ws = found
+        self.border = con.get("current_border_width") or 0
         if floating != self.floating:
             # Tiled <-> floated mid-mode ($mod+Shift+space): follow the window.
             self.floating = floating
             self.ipc.command('mode "resize floating"' if floating else 'mode "resize"')
-        self.box.show(self.frame)
+        self.show_box()
         return True
+
+    def show_box(self):
+        """Floating: the tinted box. Tiled: only the border, recoloured."""
+        if self.floating or self.border > 0:
+            self.box.show(self.frame, 0 if self.floating else self.border)
+        else:
+            self.box.hide()
 
     # -- keys -------------------------------------------------------------
     def key(self, words):
@@ -329,7 +364,7 @@ class Mode:
         if (nx, ny, nw, nh) == (x, y, w, h):
             return
         self.frame = (nx, ny, nw, nh)
-        self.box.show(self.frame)
+        self.show_box()
         self.queue(True)
 
     def step_tiled(self, how, dir_):
@@ -378,7 +413,7 @@ class Mode:
         found = locate(self.ipc.tree(), cid)
         if found:
             _, _, self.frame, self.ws = found
-            self.box.show(self.frame)
+            self.show_box()
         return False
 
     # -- events -----------------------------------------------------------
