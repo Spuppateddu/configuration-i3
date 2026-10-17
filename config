@@ -13,7 +13,7 @@ font pango:Cascadia Code NF 10
 
 # ── Autostart ─────────────────────────────────────────────────────────────
 exec --no-startup-id dex --autostart --environment i3
-exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
+exec --no-startup-id xss-lock --transfer-sleep-lock -- ~/.i3rc/scripts/lock.sh --nofork
 # Refresh rates. The ultrawide's EDID marks 60Hz as preferred, so X picks that
 # on its own and the 100Hz mode has to be asked for by name; DP-4 already comes
 # up at its 144Hz preferred. Positions are pinned so the pair can't reshuffle.
@@ -110,7 +110,7 @@ bindsym Control+Shift+4 exec --no-startup-id flameshot gui
 bindsym Control+Shift+dollar exec --no-startup-id flameshot gui
 
 # Lock & power menu.
-bindsym $mod+Shift+x exec --no-startup-id i3lock
+bindsym $mod+Shift+x exec --no-startup-id ~/.i3rc/scripts/lock.sh
 bindsym $mod+Shift+p exec --no-startup-id ~/.i3rc/scripts/powermenu.sh
 
 # Music: full TUI, and a quick rofi folder picker that enqueues + shuffles.

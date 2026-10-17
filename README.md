@@ -390,6 +390,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── eww_lib.sh             # shared: output detection + bar open (sourced)
     ├── emit_lib.sh            # shared: JSON escape + resubscribe loop (sourced)
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown
+    ├── lock.sh                # lock: best-linux-environment's b-lock, else i3lock
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
     ├── agent.sh               # $mod+c: agent in tmux, config.local's $agent

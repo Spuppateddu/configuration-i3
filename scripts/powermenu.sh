@@ -7,7 +7,7 @@ chosen=$(printf '\U000F033E Lock\n\U000F04B2 Suspend\n\U000F0343 Logout\n\U000F0
     rofi -dmenu -i -no-show-icons -p "Power" -theme "$REPO/rofi/powermenu.rasi")
 
 case "$chosen" in
-    *Lock)      i3lock ;;
+    *Lock)      "$REPO/scripts/lock.sh" ;;
     *Suspend)   systemctl suspend ;;
     *Logout)    i3-msg exit ;;
     *Reboot)    systemctl reboot ;;
