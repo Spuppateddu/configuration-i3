@@ -8,6 +8,11 @@
   "$HOME/.i3rc/eww/scripts/network.sh")
 (deflisten vol :initial '{"level":0,"muted":false}'
   "$HOME/.i3rc/eww/scripts/volume.sh")
+;; Waiting apt updates, from best-linux-environment's `b-update --count`. It
+;; caches the number until apt or dpkg change, so polling it is cheap. No
+;; b-update on this machine: "0", and the segment stays hidden.
+(defpoll updates :interval "60s" :initial "0"
+  `b="$HOME/.local/bin/b-update"; [ -x "$b" ] && "$b" --count || echo 0`)
 ;; Layout density *and* the bar's output name (scripts/screen.sh). `scr.mon`
 ;; re-emits on every output event, so it never points at a dead monitor.
 ;; The initial value mirrors screen.sh's `wide` tier, so the first frame drawn
@@ -82,6 +87,17 @@
 
 ;; ── Status island ────────────────────────────────────────────────────────────
 ;; Icon only: connected over wifi, connected over ethernet, or offline.
+;; Hidden at 0. Click opens a terminal running b-update; --hold keeps it open
+;; after, so the result can be read.
+(defwidget updateseg []
+  (box :space-evenly false :visible {updates != "0" && updates != ""}
+    (button :class "seg" :tooltip "${updates} updates waiting — click to install them"
+            :onclick "alacritty --hold -e $HOME/.local/bin/b-update &"
+      (box :space-evenly false
+        (label :class "icon yellow" :text "󰚰")
+        (label :class "val" :text updates)))
+    (vsep)))
+
 (defwidget netseg []
   (box :class "seg pad" :space-evenly false
     (label :class {net.kind == "off" ? "icon red" : "icon blue"}
@@ -159,6 +175,7 @@
     ;; `box`: eww silently DROPS :visible on a defwidget — no error, divider stays.
     (box :space-evenly false :visible {player.status != "none"}
       (vsep))
+    (updateseg)
     (netseg)
     (vsep)
     (volseg)

@@ -1,7 +1,7 @@
 # .i3rc
 
 My i3 window manager setup: Gruvbox Dark palette, eww top bar (per-monitor
-workspaces, volume, calendar popup, system tray), rofi launcher, solid
+workspaces, waiting updates, volume, calendar popup, system tray), rofi launcher, solid
 Gruvbox-dark background, picom compositing, dunst notifications, and
 mpd + ncmpcpp for offline music.
 
