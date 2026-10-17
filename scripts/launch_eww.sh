@@ -28,12 +28,27 @@ sweep_listeners() {
     done
 }
 
-"$EWW" --config "$CFG" kill 2>/dev/null
+# `eww kill` reaches only the daemon that owns the socket; one that lost it to a
+# second daemon keeps drawing its bar, so kill every daemon of this config by pid.
+kill_daemons() {
+    local pid
+    "$EWW" --config "$CFG" kill 2>/dev/null
+    for pid in $(pgrep -x eww 2>/dev/null); do
+        [ "$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | head -n3)" = \
+          "$(printf '%s\n' "$EWW" --config "$CFG")" ] && kill "$pid" 2>/dev/null
+    done
+}
+
+kill_daemons
 sweep_listeners
 sleep 0.5
 
+# `open` with no daemon answering starts a second one, hence the ping wait.
 "$EWW" --config "$CFG" daemon 9>&-
-sleep 0.5
+for ((i = 0; i < 50; i++)); do                 # ~5s ceiling
+    "$EWW" --config "$CFG" ping >/dev/null 2>&1 && break
+    sleep 0.1
+done
 
 # Waits out the cold-boot window (an empty --screen fails the open outright) and
 # confirms every bar appeared.

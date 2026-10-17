@@ -155,7 +155,7 @@ eww_open_bar() {
             "$EWW" --config "$CFG" open bar --id "$id" --screen "$screen" \
                    --arg "mon=$mon" \
                    --arg "others=$([ -z "$mon" ] && printf true || printf '%s' "$others")" \
-                   2>/dev/null
+                   2>/dev/null 9>&-   # `open` may turn into a daemon: never let it keep the lock
         done <<<"$targets"
         if [ "$(eww_bar_ids | sort)" = "$want" ]; then
             { printf '%s\n' "$targets"; output_layout; } >"$BAR_SCREEN_STATE"
