@@ -26,10 +26,8 @@ TITLE_MIN=16
 # Read once: a change to it relaunches the bar, and this listener with it.
 BAR_MODE="$(bar_mode)"
 
-# The bars the outputs asked for when this listener started, and where those
-# outputs sat. A monitor plugged in or out, moved, rotated or resized changes it,
-# and only launch_eww.sh can open, close or move a window.
-LAST_TARGETS="$(bar_state)"
+# The layout a rebuild was last started for, so one ARandR change starts one.
+SPAWNED=""
 
 LAST_MON="" LAST_W=""    # last output that resolved, for the guards in emit
 LAY_TIER="" LAY_TITLE="" # mirrored to $STATE by emit_changed for player.sh
@@ -71,16 +69,17 @@ emit() {
     fi
     LAST_MON=$mon LAST_W=$w
 
-    # A monitor came, went, moved, turned, or became the primary one: a bar too
-    # few, too many, or left on the wrong output. Only on a real output event, so
-    # the first emit can never fire it and loop. setsid, because the relaunch kills
-    # the daemon and this script with it. The 1s lets ARandR's xrandr finish, so
-    # the bars open on the final layout rather than a half-applied one.
-    if [ -n "$1" ]; then
+    # The outputs no longer match the layout the open bars were built for (the state
+    # file, not this listener's memory: eww restarts listeners): repaint and rebuild.
+    if { [ -n "$1" ] && event_touches_output "$1"; } || { [ -z "$1" ] && [ -r "$BAR_SCREEN_STATE" ]; }; then
         targets="$(bar_state)"
-        if [ -n "$targets" ] && [ "$targets" != "$LAST_TARGETS" ]; then
-            LAST_TARGETS="$targets"
-            setsid sh -c 'sleep 1; exec "$0"' "$REPO/scripts/launch_eww.sh" >/dev/null 2>&1 &
+        if [ -n "$targets" ] && [ "$targets" != "$SPAWNED" ] \
+           && [ "$targets" != "$(cat "$BAR_SCREEN_STATE" 2>/dev/null)" ]; then
+            SPAWNED="$targets"
+            # setsid: the rebuild kills this script. 1s lets ARandR's xrandr finish; feh
+            # drew the wallpaper for the old screen size, so it is painted again first.
+            setsid sh -c 'sleep 1; "$1"; exec "$0"' "$REPO/scripts/launch_eww.sh" \
+                "$REPO/scripts/set_background.sh" >/dev/null 2>&1 &
         fi
     fi
 

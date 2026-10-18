@@ -39,6 +39,8 @@ kill_daemons() {
     done
 }
 
+# No state while rebuilding: screen.sh starting mid-way must not read the old one.
+rm -f "$BAR_SCREEN_STATE"
 kill_daemons
 sweep_listeners
 sleep 0.5
