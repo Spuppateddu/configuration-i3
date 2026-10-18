@@ -112,12 +112,13 @@
       (button :class {vol.muted ? "icon red" : "icon green"}
               :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
         {vol.muted ? "󰝟" : vol.level < 34 ? "󰕿" : vol.level < 67 ? "󰖀" : "󰕾"})
-      ;; Click or drag sets the level. Past 100% is boost (keys only): clamped
-      ;; here, shown by colour. :max 101 because eww's scale stops one short.
+      ;; Click or drag sets the level, up to the same 150% boost as the keys
+      ;; (`-l 1.5`, see `config`); past 100% is shown by colour. :max 151
+      ;; because eww's scale stops one short.
       (scale :class {vol.muted ? "volbar muted" : vol.level > 100 ? "volbar boost" : "volbar"}
-             :valign "center" :min 0 :max 101
-             :value {vol.level > 100 ? 100 : vol.level}
-             :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))))
+             :valign "center" :min 0 :max 151
+             :value {vol.level > 150 ? 150 : vol.level}
+             :onchange "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ {}%"))))
 
 (defwidget sysinfo []
   (box :class "pad" :space-evenly false :spacing {scr.group}

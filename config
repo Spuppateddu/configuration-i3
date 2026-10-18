@@ -53,7 +53,8 @@ exec_always --no-startup-id xset s off s noblank +dpms dpms 0 0 3000
 
 # ── Audio keys (PipeWire via wpctl) ───────────────────────────────────────
 # `-l 1.5` = 50% software boost past unity (ALSA is already at 0.00dB); it clips
-# on bass beyond that. scripts/volume.sh repeats the number — change both.
+# on bass beyond that. eww/scripts/volume.sh and the slider in eww/eww.yuck
+# repeat the number — change all three.
 bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
 bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
 bindsym XF86AudioMute        exec --no-startup-id wpctl set-mute   @DEFAULT_AUDIO_SINK@ toggle

@@ -22,7 +22,8 @@ emit() {
     printf '{"level":%s,"muted":%s}\n' "$lvl" "$mut"
 }
 
-# `-l 1.5` is the same cap XF86AudioRaiseVolume uses in `config` — pactl has no
+# `-l 1.5` is the same cap XF86AudioRaiseVolume (`config`) and the slider
+# (`eww.yuck`) use — pactl has no
 # ceiling at all and would walk the sink arbitrarily far into software boost.
 if [ "$1" = "scroll" ]; then
     if [ "$2" = "up" ]; then
