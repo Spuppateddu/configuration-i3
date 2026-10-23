@@ -40,6 +40,10 @@ BORDER_STYLE=normal
 # Same default as float.sh's skip list, and the rules below repeat it.
 KEEP_CLASS_RE=${I3RC_FLOAT_SKIP:-'^(flameshot|i3lock)$'}
 
+# Classes that tile although they set no _NET_WM_WINDOW_TYPE, so the
+# [window_type="normal"] rules miss them. The rules below repeat it.
+TILE_CLASS_RE='^nsxiv$'
+
 JQ_DESC='def desc: recurse(.nodes[]?, .floating_nodes[]?);'
 
 current_mode() {
@@ -54,6 +58,7 @@ write_border_file() {
 # Runs after config's \`border normal 3\` and before 07-/08-/config.local, so a
 # per-app border set there still wins, exactly as it does over config.
 for_window [window_type="normal"] border $BORDER_STYLE $TILE_BORDER_PX
+for_window [class="(?i)^nsxiv$"] border $BORDER_STYLE $TILE_BORDER_PX
 EOF
 }
 
@@ -65,6 +70,8 @@ write_mode_file() {
 # Runs after config's `for_window [class=".*"] floating enable`: i3 applies
 # both at manage time, so the window is tiled before it is ever drawn.
 for_window [window_type="normal"] floating disable
+# nsxiv sets no window type at all, so the rule above never sees it.
+for_window [class="(?i)^nsxiv$"] floating disable
 
 # Put back the three the rule above must not touch. A scratchpad window tiled
 # into __i3_scratch is a window you can no longer show.
@@ -82,11 +89,12 @@ EOF
 # con ids of the windows a switch has to move, jq filter $1 picking the
 # direction. Never the scratchpad, the sticky ones or the keep-classes.
 targets() {
-    i3-msg -t get_tree | jq -r --arg keep "$KEEP_CLASS_RE" "$JQ_DESC"'
+    i3-msg -t get_tree | jq -r --arg keep "$KEEP_CLASS_RE" --arg tile "$TILE_CLASS_RE" "$JQ_DESC"'
         desc | select(.type == "workspace")
              | select(.name | startswith("__i3") | not)
              | desc | select(.window != null)
-             | select(.window_type == "normal")
+             | select(.window_type == "normal"
+                      or ((.window_properties.class // "") | test($tile; "i")))
              | select(.sticky != true)
              | select((.window_properties.class // "") | test($keep) | not)
              | select('"$1"')
