@@ -31,6 +31,10 @@ Tiling, one `$mod+Control+space` away — every window takes a share of the scre
 > alternative to it, kept but **not bound to anything** — add a `bindsym` in
 > `config.local` if you want it.
 
+> Right-click the volume in the bar for [`scripts/audio_menu.sh`](./scripts/audio_menu.sh):
+> a rofi list of outputs and inputs (one row per port, e.g. Speakers / Headphones).
+> Pick one and apps already playing move to it. "Advanced…" opens pavucontrol.
+
 ## On its own, or as part of best-linux-environment
 
 Both work, and this repo is written not to care which one ran it.
@@ -392,6 +396,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown
     ├── lock.sh                # lock: best-linux-environment's b-lock, else i3lock
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
+    ├── audio_menu.sh          # rofi output/input picker (right-click on volume)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
     ├── agent.sh               # $mod+c: agent in tmux, config.local's $agent
     ├── agent_lib.sh           # shared: reads $agent / $agent_desk (sourced)

@@ -107,7 +107,7 @@
   ;; Scroll and right click cover the whole segment; only the icon mutes.
   ;; wpctl, not pactl: volume.sh reads back the same sink these write.
   (eventbox :class "seg" :onscroll "$HOME/.i3rc/eww/scripts/volume.sh scroll {}"
-            :onrightclick "pavucontrol &"
+            :onrightclick "$HOME/.i3rc/scripts/audio_menu.sh &"
     (box :space-evenly false :tooltip {vol.muted ? "muted" : "${vol.level}%"}
       (button :class {vol.muted ? "icon red" : "icon green"}
               :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
