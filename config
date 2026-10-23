@@ -54,7 +54,7 @@ exec_always --no-startup-id xset s off s noblank +dpms dpms 0 0 3000
 # ── Audio keys (PipeWire via wpctl) ───────────────────────────────────────
 # `-l 1.5` = 50% software boost past unity (ALSA is already at 0.00dB); it clips
 # on bass beyond that. eww/scripts/volume.sh and the slider in eww/eww.yuck
-# repeat the number — change all three.
+# repeat the number, and so does $mod+] below — change them all.
 bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
 bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
 bindsym XF86AudioMute        exec --no-startup-id wpctl set-mute   @DEFAULT_AUDIO_SINK@ toggle
@@ -72,6 +72,13 @@ bindsym XF86AudioPrev exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh prev
 # $mod+p = play/pause for keyboards without media keys. It takes Alt+p from
 # Claude Code's model picker (/model still works); no other tool uses it.
 bindsym $mod+p exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh toggle
+# $mod+[ / $mod+] = volume down / up, the keys right of p; same step and cap
+# as XF86AudioLowerVolume / RaiseVolume above.
+bindsym $mod+bracketleft  exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindsym $mod+bracketright exec --no-startup-id wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
+# $mod+Shift+[ / $mod+Shift+] = previous / next track, same player as $mod+p.
+bindsym $mod+Shift+bracketleft  exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh prev
+bindsym $mod+Shift+bracketright exec --no-startup-id ~/.i3rc/scripts/player_ctl.sh next
 
 # ── Vim-style directions ──────────────────────────────────────────────────
 set $up    k

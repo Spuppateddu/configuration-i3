@@ -247,6 +247,8 @@ Controls:
 | Play / pause, prev / next, what is playing | Inside ncmpcpp (`$mod+m`) |
 | Play / pause, prev / next, track title | The bar's media island, or ncmpcpp |
 | Media keys | XF86AudioPlay / Next / Prev — same player the bar drives |
+| Play / pause, volume down / up (no media keys) | `$mod+p`, `$mod+[`, `$mod+]` |
+| Previous / next track (no media keys) | `$mod+Shift+[`, `$mod+Shift+]` |
 
 The bar's media island sits on the right, just left of the network icon, and
 shows whatever is playing *now* — mpd, a video, a Firefox tab: prev, play/pause,
