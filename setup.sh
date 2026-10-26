@@ -331,7 +331,7 @@ link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-4.0/settings.ini"
 # a compile error — so they exist, empty, whatever writes them. The GTK ones sit
 # beside the symlinks above, which is where GTK resolves a relative @import.
 step "Checking the per-machine font-size and colour overrides"
-for f in "$REPO/eww/size.local.scss" "$REPO/eww/color.local.scss" \
+for f in "$REPO/eww/size.local.scss" "$REPO/eww/color.local.scss" "$REPO/eww/focus.local.scss" \
          "$HOME/.config/gtk-3.0/size.local.css" "$HOME/.config/gtk-4.0/size.local.css"; do
     if [[ -e "$f" ]]; then
         skip "${f/#$HOME/\~} already there."

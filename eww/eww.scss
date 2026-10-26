@@ -225,3 +225,6 @@ window { background: transparent; }
 // The bar's colour, from best-linux-environment's BLE_BAR_COLOR (b-wallpaper
 // writes it, so it can follow the wallpaper). Git-ignored, seeded empty too.
 @import "color.local.scss";
+// The current workspace in i3's focused window colour, from BLE_I3_BORDER_COLOR.
+// Git-ignored, seeded empty too.
+@import "focus.local.scss";

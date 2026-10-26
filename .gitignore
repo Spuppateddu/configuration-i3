@@ -21,6 +21,7 @@ CLAUDE.md
 # is not here: it lives beside the ~/.config symlinks, where GTK resolves it.
 size.local.scss
 color.local.scss
+focus.local.scss
 size.local.rasi
 size.local.conf
 
