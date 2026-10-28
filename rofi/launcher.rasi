@@ -13,6 +13,11 @@
     mauve:    #d3869b;
     red:      #fb4934;
     transparent: #00000000;
+    /* i3's focused and unfocused colours; focus.local.rasi overrides these. */
+    accent:       @lavender;
+    on-accent:    @base;
+    second:       @transparent;
+    on-second:    @lavender;
 
     /* Same single family as ../config. */
     font: "Cascadia Code NF 11";
@@ -31,7 +36,7 @@ window {
     padding:          0;
     border:           2px;
     border-radius:    14px;
-    border-color:     @lavender;
+    border-color:     @accent;
     background-color: @base;
     cursor:           "default";
 }
@@ -57,8 +62,10 @@ inputbar {
 
 prompt {
     enabled:          true;
-    background-color: transparent;
-    text-color:       @lavender;
+    padding:          0 6px;
+    border-radius:    6px;
+    background-color: @second;
+    text-color:       @on-second;
 }
 
 entry {
@@ -95,7 +102,7 @@ element {
 
 element normal.normal    { background-color: transparent; text-color: @text; }
 element alternate.normal { background-color: transparent; text-color: @text; }
-element selected.normal  { background-color: @lavender;   text-color: @base; }
+element selected.normal  { background-color: @accent;     text-color: @on-accent; }
 element selected.active  { background-color: @mauve;      text-color: @base; }
 element selected.urgent  { background-color: @red;        text-color: @base; }
 
@@ -115,3 +122,5 @@ element-text {
 /* This machine's font size (git-ignored, from best-linux-environment's
    fonts.local). Last, so it wins; rofi skips it quietly when it is absent. */
 @import "~/.i3rc/rofi/size.local.rasi"
+/* i3's focused colours (git-ignored, from best-linux-environment's settings.local). */
+@import "~/.i3rc/rofi/focus.local.rasi"

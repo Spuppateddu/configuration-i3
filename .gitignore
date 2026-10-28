@@ -23,6 +23,7 @@ size.local.scss
 color.local.scss
 focus.local.scss
 size.local.rasi
+focus.local.rasi
 size.local.conf
 
 # Which monitors the bar opens on, written by best-linux-environment's

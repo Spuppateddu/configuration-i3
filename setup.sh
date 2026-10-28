@@ -342,6 +342,19 @@ for f in "$REPO/eww/size.local.scss" "$REPO/eww/color.local.scss" "$REPO/eww/foc
         ok "seeded ${f/#$HOME/\~} — empty, so this repo's own values apply."
     fi
 done
+# gtk.css's menu hover reads these two colours, so the seed holds them: the
+# Gruvbox orange until best-linux-environment writes i3's focused colour.
+for d in "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"; do
+    f="$d/focus.local.css"
+    if [[ -e "$f" ]]; then
+        skip "${f/#$HOME/\~} already there."
+    elif [[ "$DRY_RUN" == true ]]; then
+        printf '%s  would write:%s %s\n' "$C_DIM" "$C_OFF" "${f/#$HOME/\~}"
+    else
+        printf '@define-color cat_accent    #fe8019;\n@define-color cat_on_accent #282828;\n' > "$f"
+        ok "seeded ${f/#$HOME/\~} — the Gruvbox orange."
+    fi
+done
 
 # ── 5. Make scripts executable ────────────────────────────────────────────
 # Keep new scripts committed 755 so this stays a no-op: a 644 file gets flipped
