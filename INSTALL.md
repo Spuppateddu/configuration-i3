@@ -405,7 +405,7 @@ If the top bar doesn't appear:
   `i3-msg '[floating] border normal <n>'`. Tiling mode has its own knob:
   `I3RC_TILE_BORDER_PX` (default 2), see the README's *Tiling mode*.
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
-  usable workspace, default 45/95 — a tall rectangle) and `I3RC_VMAX_W_PCT` /
+  usable workspace, default 45/100 — a full-height rectangle) and `I3RC_VMAX_W_PCT` /
   `I3RC_VMAX_H_PCT` (the `$mod+Shift+k` size, default 100/100) read by
   `scripts/float.sh`; see the README's
   *Floating desktop* section.

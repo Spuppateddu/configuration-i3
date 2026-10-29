@@ -13,11 +13,12 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/runtime_lib.sh" || e
 PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 
 # Standard window: percent of the usable workspace — a tall rectangle, 45% wide
-# so two still sit side by side, 95% high so it uses almost the whole screen.
+# so two still sit side by side, 100% high so it fills the screen from the bar
+# to the bottom edge (the vertical edge gap collapses to 0 on its own).
 # Every new normal window opens at this size, and `move down` snaps one back to
 # it, centred.
 STD_W_PCT=${I3RC_STD_W_PCT:-45}
-STD_H_PCT=${I3RC_STD_H_PCT:-95}
+STD_H_PCT=${I3RC_STD_H_PCT:-100}
 
 # `move up`: percent of the usable workspace a window grows to, width and
 # height, centred. The usable workspace already stops at the bar, so 100 is the
