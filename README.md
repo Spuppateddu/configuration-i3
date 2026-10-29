@@ -404,7 +404,7 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)
     ├── theme_lib.sh           # shared: find alacritty's config (sourced)
-    ├── float.sh               # floating desktop: places new windows, snap keys
+    ├── float.sh               # floating desktop: places new windows, snap keys, $mod+Shift+N
     ├── desktop_mode.sh        # $mod+Control+space: float ↔ tile the whole desktop
     ├── set_background.sh      # solid Gruvbox-dark root window (feh, picom-safe)
     ├── window_mode.py         # $mod+r daemon: preview box, batched resize/move

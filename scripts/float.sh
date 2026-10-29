@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The floating desktop: `watch` sizes every new window and drops it on a random
 # free spot that keeps the window you came from readable, `move <dir>` snaps a
-# floating one, `place <con_id>` places one on demand (desktop_mode.sh).
+# floating one, `place <con_id>` places one on demand (desktop_mode.sh),
+# `send <ws>` moves the focused one to a workspace, refitted to its monitor.
 
 # Every number comes from the live workspace rect, which i3 already shrank by the
 # eww bar's strut — so no resolution, bar height or output name is hardcoded.
@@ -238,6 +239,45 @@ cmd_move() {
     esac
 }
 
+# "<con> <floating> <ws-x> <ws-y> <ws-w> <ws-h> <x> <y> <w> <h>" for the focused
+# window: its con id, floating state, workspace rect and frame rect (the
+# floating con's, or its own when tiled).
+focused_frame() {
+    i3-msg -t get_tree | jq -r "$JQ_DESC"'
+        [ desc | select(.type == "workspace")
+               | select([desc | select(.focused == true)] | length > 0)
+               | . as $ws
+               | ([desc | select(.focused == true)] | first) as $c
+               | ([ $ws.floating_nodes[]
+                    | select([desc | select(.focused == true)] | length > 0)
+                    | .rect ] | first // $c.rect) as $f
+               | "\($c.id) \($c.floating) \($ws.rect.x) \($ws.rect.y) \($ws.rect.width) \($ws.rect.height) \($f.x) \($f.y) \($f.width) \($f.height)" ]
+        | first // empty'
+}
+
+# $mod+Shift+<n>: send the focused window to workspace $1 and follow it. i3 keeps
+# a floating window's pixel size across monitors, so a full-height window from a
+# big screen ends up taller than a small one. When the workspace rect changes,
+# the frame is scaled to take the same share of the new one, at the same spot.
+cmd_send() {
+    local ws=$1 id floating ox oy ow oh fx fy fw fh nx ny nw nh
+    read -r id floating ox oy ow oh fx fy fw fh < <(focused_frame) || id=""
+    i3-msg "move container to workspace number $ws" >/dev/null
+    if [ -n "${fh:-}" ]; then
+        case $floating in
+            user_on|auto_on)
+                read -r _ _ nx ny nw nh < <(con_state_of "$id") || nh=""
+                if [ -n "${nh:-}" ] && [ "$ow" -gt 0 ] && [ "$oh" -gt 0 ] &&
+                   [ "$nw $nh" != "$ow $oh" ]; then
+                    apply "con_id=$id" "$((fw * nw / ow))" "$((fh * nh / oh))" \
+                          "$((nx + (fx - ox) * nw / ow))" "$((ny + (fy - oy) * nh / oh))"
+                fi ;;
+        esac
+    fi
+    i3-msg "workspace number $ws" >/dev/null
+    "$(dirname -- "${BASH_SOURCE[0]}")/warp_pointer.sh"
+}
+
 # Standard size for con $1 if it is a normal window, centred as-is if it is a
 # dialog. A tiled con is left alone: `resize set` there moves the split instead.
 place_con() {
@@ -324,5 +364,6 @@ case "${1:-}" in
     watch) cmd_watch ;;
     move)  cmd_move "${2:?usage: float.sh move <left|down|up|right>}" ;;
     place) place_con "${2:?usage: float.sh place <con_id>}" ;;
-    *)     printf 'usage: %s watch | move <left|down|up|right> | place <con_id>\n' "${0##*/}" >&2; exit 2 ;;
+    send)  cmd_send "${2:?usage: float.sh send <workspace>}" ;;
+    *)     printf 'usage: %s watch | move <left|down|up|right> | place <con_id> | send <workspace>\n' "${0##*/}" >&2; exit 2 ;;
 esac
