@@ -325,6 +325,13 @@ link "$REPO/gtk/gtk.css"          "$HOME/.config/gtk-3.0/gtk.css"
 link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-3.0/settings.ini"
 link "$REPO/gtk/gtk.css"          "$HOME/.config/gtk-4.0/gtk.css"
 link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-4.0/settings.ini"
+link "$REPO/gtk/retro.css"        "$HOME/.config/gtk-4.0/retro.css"
+# retro.css is compact; Nautilus's own zoom keeps the file icons small to match.
+if command -v gsettings >/dev/null && gsettings list-schemas 2>/dev/null | grep -qx org.gnome.nautilus.icon-view; then
+    for view in icon-view list-view; do
+        run gsettings set "org.gnome.nautilus.$view" default-zoom-level small
+    done
+fi
 
 # ── 4b. Per-machine font sizes and bar colour ──────────────────────────────
 # eww.scss and gtk.css import these unconditionally, and a missing scss import is
@@ -332,7 +339,8 @@ link "$REPO/gtk/settings.ini"     "$HOME/.config/gtk-4.0/settings.ini"
 # beside the symlinks above, which is where GTK resolves a relative @import.
 step "Checking the per-machine font-size and colour overrides"
 for f in "$REPO/eww/size.local.scss" "$REPO/eww/color.local.scss" "$REPO/eww/focus.local.scss" \
-         "$HOME/.config/gtk-3.0/size.local.css" "$HOME/.config/gtk-4.0/size.local.css"; do
+         "$HOME/.config/gtk-3.0/size.local.css" "$HOME/.config/gtk-4.0/size.local.css" \
+         "$HOME/.config/gtk-3.0/retro.css"; do
     if [[ -e "$f" ]]; then
         skip "${f/#$HOME/\~} already there."
     elif [[ "$DRY_RUN" == true ]]; then

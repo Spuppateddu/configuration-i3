@@ -6,6 +6,9 @@
 /* The hover colour, i3's focused one (best-linux-environment's settings.local).
  * setup.sh seeds it with cat_lavender, so it is never missing. */
 @import url("focus.local.css");
+/* The Windows 95 look for libadwaita apps (Nautilus). After focus.local.css,
+ * whose accent it reads; gtk-3.0 gets an empty one, so GTK3 menus stay as below. */
+@import url("retro.css");
 
 /* Gruvbox Dark restyle for GTK menus (nm-applet, blueman, …).
  * Loaded as user CSS on top of the base theme, so it wins.
