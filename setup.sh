@@ -452,25 +452,6 @@ else
     warn "systemctl not available — start mpd by hand before ncmpcpp."
 fi
 
-# ── 6b. Agent workspace ───────────────────────────────────────────────────
-# Where $mod+c starts the coding agent. A folder of its own because an agent
-# asks you to trust the directory it opens in, and $HOME is everything you own.
-step "Creating the agent workspace"
-
-source "$REPO/scripts/agent_lib.sh"   # i3rc_agent_desk
-
-# config.local's `set $agent_desk`, or ~/agent-desk. Same reader agent.sh uses,
-# so the folder made here is the one the key opens.
-if AGENT_DESK="$(i3rc_agent_desk "$REPO")"; then
-    if [[ -d "$AGENT_DESK" ]]; then
-        skip "${AGENT_DESK/#$HOME/\~} already exists."
-    else
-        run mkdir -p "$AGENT_DESK" || warn "Could not create $AGENT_DESK"
-    fi
-else
-    warn "\$agent_desk in config.local is not an absolute path — no folder made."
-fi
-
 # ── 7. Done ───────────────────────────────────────────────────────────────
 echo
 ok "Setup complete."

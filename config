@@ -97,10 +97,6 @@ bindsym $mod+q kill
 bindsym $mod+b exec --no-startup-id firefox --new-window
 bindsym $mod+n exec --no-startup-id firefox --private-window
 
-# Coding agent, in a folder of its own so trusting it isn't trusting $HOME. Both
-# per-machine: `set $agent claude` / `set $agent_desk <path>` in config.local.
-bindsym $mod+c exec --no-startup-id ~/.i3rc/scripts/agent.sh
-
 # App launcher (rofi drun) and window switcher.
 bindsym $mod+d   exec --no-startup-id rofi -show drun -config ~/.i3rc/rofi/config.rasi
 bindsym $mod+Tab exec --no-startup-id sh -c 'rofi -show window -config ~/.i3rc/rofi/config.rasi && ~/.i3rc/scripts/warp_pointer.sh'

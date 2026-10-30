@@ -239,57 +239,6 @@ exec_always --no-startup-id xrandr --output eDP-1 --scale 1.25x1.25
 the panel — higher number = smaller UI. Reset with `--scale 1x1`. Reload i3 after
 editing with `$mod+Shift+c`.
 
-### The coding agent (`$mod+c`)
-
-`$mod+c` opens a coding agent, in a folder of its own, inside tmux. Which
-agent is a per-machine choice, so the shared config names none: press the key
-with nothing configured and you get a notification saying so, and no window.
-
-Name yours in the same file, as an ordinary i3 variable:
-
-```
-# ~/.i3rc/config.local
-set $agent claude
-set $agent_desk ~/agent-desk        # optional — this is the default
-```
-
-Any command works — `codex`, `opencode`, `claude --continue`. `$agent_desk` is
-the folder the terminal opens in; leave it out and it's `~/agent-desk`. A
-leading `~` or `$HOME` is expanded, and the path has to be absolute — i3 spawns
-from wherever it was started, so a relative one would move between logins.
-
-Nothing in the shared config uses either variable, so i3 just parses the lines
-and moves on; [`scripts/agent.sh`](./scripts/agent.sh) is what reads them, at
-each keypress.
-
-It reads the file rather than taking `$agent` as an argument because i3
-substitutes variables as it parses, and `include ~/.i3rc/*.local` is the very
-last line of the config — a `set` there would arrive after the binding above it.
-So the value can't reach the `bindsym`, only a script running later can see it.
-
-**It lives in tmux.** Each press is a new window of a tmux session named after
-the agent (`claude` for `claude --continue`), created on the first press. If the
-terminal showing that session is already open, the new window appears there and
-that terminal gets focus — no new i3 window. Otherwise a terminal opens attached
-to the session. Closing the terminal closes nothing: the agents keep running, and
-the next `$mod+c`, or `tmux attach -t claude` from anywhere, brings them back.
-A window closes when its agent exits; the session ends with its last window.
-
-The command is split on spaces and run directly, without a shell. For a pipe, a
-`&&` or an environment variable, put it in a script and name the script instead.
-
-**Why a folder of its own, and not `$HOME`.** Every one of these agents asks you
-to trust the directory it starts in, and then reads, writes and runs files
-there. Point it at your home folder and that answer covers everything you own —
-`.ssh`, browser profiles, every project at once. The desk folder is empty, so
-trusting it costs nothing, and you answer that question once instead of on each
-launch. `setup.sh` creates it; `agent.sh` also creates it if it is missing.
-Both read `$agent_desk` the same way, so moving it moves both.
-
-That folder is where you drop the thing you want looked at. Working in a real
-project is still `cd` — but then you are choosing to trust that project, which
-is the point.
-
 **Font sizes are the exception you don't write by hand.** Four more git-ignored
 files carry them per machine — `05-fontsize.local` (i3), `eww/size.local.scss`,
 `rofi/size.local.rasi` and `dunst/size.local.conf`, plus `size.local.css` beside
@@ -406,8 +355,6 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
     ├── bluetooth_menu.sh      # rofi adapter toggle + device connect (unbound)
     ├── audio_menu.sh          # rofi output/input picker (right-click on volume)
     ├── play_folder.sh         # rofi-picked folder → mpd shuffle play
-    ├── agent.sh               # $mod+c: agent in tmux, config.local's $agent
-    ├── agent_lib.sh           # shared: reads $agent / $agent_desk (sourced)
     ├── net_lib.sh             # shared: interface pick + wifi SSID (sourced)
     ├── runtime_lib.sh         # shared: where lock/pid/state files live (sourced)
     ├── theme.sh               # alacritty dark/light toggle ($mod+Shift+t)
