@@ -98,6 +98,14 @@ The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they
 it a few pixels. `$mod+Shift+space` tiles the focused window, and `Super+Down`
 stashes it in the scratchpad — the closest thing i3 has to a minimise.
 
+`$mod+h/j/k/l` (and `$mod+←↓↑→`) move focus by **position**, through
+[`scripts/focus_dir.sh`](./scripts/focus_dir.sh): i3's own focus walks floating
+windows in list order, blind to where they sit. From a floating window it picks
+the nearest window that way on any monitor, comparing centres, so a huge window
+still has a left and a right. Nothing that way: focus stays put. Windows stacked
+on the same spot are a pile, walked one by one in a fixed order. From a tiled
+window it is plain i3 focus.
+
 `$mod+r` is layout-aware the same way, through
 [`scripts/window_mode.py`](./scripts/window_mode.py): a tiled window gets i3's
 own resize mode, a floating one gets a mode that sizes **one edge at a time**

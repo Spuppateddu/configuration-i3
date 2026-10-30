@@ -129,14 +129,16 @@ bindsym $mod+Shift+m  exec --no-startup-id ~/.i3rc/scripts/play_folder.sh
 # Keyboard focus puts the pointer in the middle of the new window, or else
 # focus_follows_mouse hands focus back to whatever the pointer was left on.
 set $warp exec --no-startup-id ~/.i3rc/scripts/warp_pointer.sh
-bindsym $mod+$left  focus left; $warp
-bindsym $mod+$down  focus down; $warp
-bindsym $mod+$up    focus up; $warp
-bindsym $mod+$right focus right; $warp
-bindsym $mod+Left   focus left; $warp
-bindsym $mod+Down   focus down; $warp
-bindsym $mod+Up     focus up; $warp
-bindsym $mod+Right  focus right; $warp
+# From a floating window, the nearest one on screen that way, any monitor;
+# i3's own focus otherwise. focus_dir.sh warps the pointer itself.
+bindsym $mod+$left  exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh left
+bindsym $mod+$down  exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh down
+bindsym $mod+$up    exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh up
+bindsym $mod+$right exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh right
+bindsym $mod+Left   exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh left
+bindsym $mod+Down   exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh down
+bindsym $mod+Up     exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh up
+bindsym $mod+Right  exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh right
 
 # ── Move / snap ───────────────────────────────────────────────────────────
 # Layout-aware, because i3 can't be: a floating window snaps to half-left /
