@@ -61,12 +61,12 @@ font and the cursor theme, and installs the programs the keybinds assume
 ## Floating desktop
 
 Every window opens **floating**, with a real draggable title bar, as a tall
-rectangle: 45% of the screen wide × 100% of its height. Two stand side by side,
-and the window uses the whole height of the screen. Click-to-focus, not
+rectangle: 45% of the screen wide × 98% of its height, centred vertically. Two
+stand side by side. Click-to-focus, not
 focus-follows-mouse.
 
 A new window lands on a **random free spot that keeps the window you came from
-in sight**. `float.sh` lays 9 × 5 candidate spots across the usable workspace,
+in sight**. `float.sh` lays 9 candidate spots across the middle of the usable workspace,
 measures at each one how much of the previously focused window the new frame
 would hide, and draws at random among all the spots that hide **at most a
 quarter** of it — so you always keep three quarters of the old window and all of
@@ -148,11 +148,11 @@ Eight knobs, all optional, exported before i3 starts:
 
 ```bash
 I3RC_STD_W_PCT=45     # standard window width, % of the usable workspace
-I3RC_STD_H_PCT=100    # ...and its height
+I3RC_STD_H_PCT=98     # ...and its height
 I3RC_VMAX_W_PCT=100   # width $mod+Shift+k grows a window to, % of the same
 I3RC_VMAX_H_PCT=100   # ...and its height
 I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
-I3RC_PLACE_ROWS=5     # ...and down it; 1 x 1 turns the draw off
+I3RC_PLACE_ROWS=1     # ...and down it; 1 = vertically centred
 I3RC_MAX_COVER_PCT=25 # how much of the window you came from a new one may hide
 I3RC_EDGE_GAP_PX=16   # room a new window keeps from the screen edges; 0 = flush
 ```

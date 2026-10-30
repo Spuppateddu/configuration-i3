@@ -14,12 +14,12 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/runtime_lib.sh" || e
 PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 
 # Standard window: percent of the usable workspace — a tall rectangle, 45% wide
-# so two still sit side by side, 100% high so it fills the screen from the bar
-# to the bottom edge (the vertical edge gap collapses to 0 on its own).
+# so two still sit side by side, 98% high and centred, with an even margin
+# above and below.
 # Every new normal window opens at this size, and `move down` snaps one back to
 # it, centred.
 STD_W_PCT=${I3RC_STD_W_PCT:-45}
-STD_H_PCT=${I3RC_STD_H_PCT:-100}
+STD_H_PCT=${I3RC_STD_H_PCT:-98}
 
 # `move up`: percent of the usable workspace a window grows to, width and
 # height, centred. The usable workspace already stops at the bar, so 100 is the
@@ -28,12 +28,10 @@ STD_H_PCT=${I3RC_STD_H_PCT:-100}
 VMAX_W_PCT=${I3RC_VMAX_W_PCT:-100}
 VMAX_H_PCT=${I3RC_VMAX_H_PCT:-100}
 
-# Spots a new window may be dropped on: this many positions across the usable
-# workspace and this many down it. More of them means finer, more varied
-# placement and a slower scan; 1 x 1 is the centre alone — placement off, every
-# window stacked in the middle again.
+# Spots a new window may be dropped on, across the usable workspace and down it.
+# 1 row keeps every window vertically centred; 1 x 1 is the centre alone.
 PLACE_COLS=${I3RC_PLACE_COLS:-9}
-PLACE_ROWS=${I3RC_PLACE_ROWS:-5}
+PLACE_ROWS=${I3RC_PLACE_ROWS:-1}
 
 # How much of the window you were just on a new window may hide, in percent of
 # its area. Every spot under this counts as free and can be drawn; 0 means only
