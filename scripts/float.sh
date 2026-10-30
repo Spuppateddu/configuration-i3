@@ -253,26 +253,45 @@ focused_frame() {
         | first // empty'
 }
 
-# $mod+Shift+<n>: send the focused window to workspace $1 and follow it. i3 keeps
-# a floating window's pixel size across monitors, so a full-height window from a
-# big screen ends up taller than a small one. When the workspace rect changes,
-# the frame is scaled to take the same share of the new one, at the same spot.
+# "<x> <y> <w> <h>" of con $1's frame: its floating con's rect.
+frame_of() {
+    i3-msg -t get_tree | jq -r --argjson id "$1" "$JQ_DESC"'
+        [ desc | select(.type == "floating_con")
+               | select([desc | select(.id == $id)] | length > 0) | .rect ]
+        | first // empty | "\(.x) \(.y) \(.width) \(.height)"'
+}
+
+# Waits up to a second for con $1's frame to hold still. An app that scales
+# itself per monitor DPI (alacritty) resizes its own window after the move.
+settle() {
+    local prev="" cur i
+    for ((i = 0; i < 20; i++)); do
+        sleep 0.05
+        cur=$(frame_of "$1")
+        [ -n "$prev" ] && [ "$cur" = "$prev" ] && return 0
+        prev=$cur
+    done
+}
+
+# $mod+Shift+<n>: send the focused window to workspace $1 and follow it. A
+# floating window keeps its share of the screen and its spot: i3 keeps its pixel
+# size across monitors, and a DPI-aware app rescales itself on top. So once it
+# has settled, the frame is always set again from the old share, never trusted.
 cmd_send() {
     local ws=$1 id floating ox oy ow oh fx fy fw fh nx ny nw nh
     read -r id floating ox oy ow oh fx fy fw fh < <(focused_frame) || id=""
     i3-msg "move container to workspace number $ws" >/dev/null
-    if [ -n "${fh:-}" ]; then
+    i3-msg "workspace number $ws" >/dev/null
+    if [ -n "${fh:-}" ] && [ "$ow" -gt 0 ] && [ "$oh" -gt 0 ]; then
         case $floating in
             user_on|auto_on)
+                settle "$id"
                 read -r _ _ nx ny nw nh < <(con_state_of "$id") || nh=""
-                if [ -n "${nh:-}" ] && [ "$ow" -gt 0 ] && [ "$oh" -gt 0 ] &&
-                   [ "$nw $nh" != "$ow $oh" ]; then
+                [ -n "${nh:-}" ] &&
                     apply "con_id=$id" "$((fw * nw / ow))" "$((fh * nh / oh))" \
-                          "$((nx + (fx - ox) * nw / ow))" "$((ny + (fy - oy) * nh / oh))"
-                fi ;;
+                          "$((nx + (fx - ox) * nw / ow))" "$((ny + (fy - oy) * nh / oh))" ;;
         esac
     fi
-    i3-msg "workspace number $ws" >/dev/null
     "$(dirname -- "${BASH_SOURCE[0]}")/warp_pointer.sh"
 }
 

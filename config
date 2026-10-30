@@ -188,7 +188,7 @@ bindsym $mod+9 workspace 9; $warp
 bindsym $mod+0 workspace 10; $warp
 
 # float.sh, so a floating window keeps its share of the screen when the
-# workspace is on the other monitor (i3 would keep its pixel size).
+# workspace is on the other monitor (i3 keeps its pixel size, alacritty rescales by DPI).
 bindsym $mod+Shift+1 exec --no-startup-id ~/.i3rc/scripts/float.sh send 1
 bindsym $mod+Shift+2 exec --no-startup-id ~/.i3rc/scripts/float.sh send 2
 bindsym $mod+Shift+3 exec --no-startup-id ~/.i3rc/scripts/float.sh send 3

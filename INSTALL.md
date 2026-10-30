@@ -374,7 +374,7 @@ If the top bar doesn't appear:
 | `$mod+Control+space` | Float ↔ tile the **whole desktop**, open windows included (reloads i3) |
 | `Super+Down` | Stash to the scratchpad; `$mod+minus` brings it back |
 | `$mod+1..0` | Workspace 1..10 |
-| `$mod+Shift+1..0` | Move window to workspace and follow it. A floating window moved to the other monitor is rescaled to the same share of that screen, so it never ends up bigger than it (`float.sh send`) |
+| `$mod+Shift+1..0` | Move window to workspace and follow it. A floating window moved to the other monitor is rescaled to the same share of that screen, so it never ends up bigger than it — even when the app rescales itself for the monitor's DPI, like alacritty (`float.sh send`) |
 | `$mod+r` | Window mode. Floating: `hjkl` pushes that edge out, `HJKL` pulls it back in, the arrows move the window without resizing it, and neither ever goes past the screen — tiled: i3's own resize. `Return`/`Escape` to leave. Floating, a tinted box previews the frame on every press and the window follows once the keys pause; tiled, only the border changes colour (the floating desktop's unfocused colour) |
 | `$mod+Shift+c` | Reload i3 |
 | `$mod+Shift+r` | Restart i3 |
