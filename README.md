@@ -181,7 +181,8 @@ survives a reboot. Three rules undo the tiling one for windows that must keep
 floating — anything in the scratchpad (tiling one there hides it for good),
 flameshot, and Firefox's Picture-in-Picture. The switch reloads i3, so the bar
 blinks once, and it re-places every open window: `$mod+Shift+space` still flips
-a single window inside either mode.
+a single window inside either mode. Tiled windows never overlap, so the same file
+turns focus-follows-mouse back on; the floating desktop stays click-to-focus.
 
 Tiled windows get their own frame width for the left, right and bottom sides:
 `I3RC_TILE_BORDER_PX`, exported before i3 starts like the knobs above, default

@@ -123,7 +123,7 @@ bindsym $mod+Shift+m  exec --no-startup-id ~/.i3rc/scripts/play_folder.sh
 
 # ── Focus ─────────────────────────────────────────────────────────────────
 # Keyboard focus puts the pointer in the middle of the new window, or else
-# focus_follows_mouse hands focus back to whatever the pointer was left on.
+# tiling mode's focus_follows_mouse hands focus back to what the pointer is on.
 set $warp exec --no-startup-id ~/.i3rc/scripts/warp_pointer.sh
 # From a floating window, the nearest one on screen that way, any monitor;
 # i3's own focus otherwise. focus_dir.sh warps the pointer itself.
@@ -282,9 +282,9 @@ for_window [class=".*"] border normal 3
 default_floating_border normal 3
 default_border          pixel 3
 
-# Focus follows the pointer. With overlapping floating windows, passing over one
-# focuses and raises it. Keyboard focus moves the pointer along: $warp below.
-focus_follows_mouse yes
+# Click to focus: passing over an overlapping floating window must not raise it.
+# Tiling mode turns hover focus back on in 90-tiling-mode.local.
+focus_follows_mouse no
 
 # Minimise-ish — i3 has none, the scratchpad is the closest thing. Super is
 # otherwise unbound ($mod is Alt); $mod+minus brings stashed windows back.

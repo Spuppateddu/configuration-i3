@@ -79,6 +79,9 @@ for_window [workspace="^__i3"] floating enable
 for_window [class="(?i)^flameshot$"] floating enable
 for_window [class="(?i)firefox" title="^Picture-in-Picture$"] floating enable, sticky enable
 
+# Tiles never overlap, so hover focus is safe here; config keeps it off.
+focus_follows_mouse yes
+
 # Tiled, only the focused window is coloured: config's own greys, put back over
 # the 06-colors.local best-linux-environment writes. Last `client.*` line wins.
 client.focused_inactive #3c3836 #3c3836 #a89984 #504945 #3c3836
