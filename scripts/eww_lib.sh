@@ -152,10 +152,14 @@ eww_open_bar() {
         while read -r id screen mon; do
             [ -n "$id" ] || continue
             eww_bar_ids | grep -qx -- "$id" && continue
-            "$EWW" --config "$CFG" open bar --id "$id" --screen "$screen" \
+            # --no-daemonize: when the daemon misses one call (busy at boot), a
+            # plain `open` starts a second daemon in its place, which steals the
+            # socket while the first keeps drawing its bar: two bars on one output.
+            # Failing here instead lets the next round retry against the one daemon.
+            "$EWW" --config "$CFG" --no-daemonize open bar --id "$id" --screen "$screen" \
                    --arg "mon=$mon" \
                    --arg "others=$([ -z "$mon" ] && printf true || printf '%s' "$others")" \
-                   2>/dev/null 9>&-   # `open` may turn into a daemon: never let it keep the lock
+                   2>/dev/null 9>&-
         done <<<"$targets"
         if [ "$(eww_bar_ids | sort)" = "$want" ]; then
             { printf '%s\n' "$targets"; output_layout; } >"$BAR_SCREEN_STATE"

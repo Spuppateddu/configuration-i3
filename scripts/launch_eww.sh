@@ -30,12 +30,16 @@ sweep_listeners() {
 
 # `eww kill` reaches only the daemon that owns the socket; one that lost it to a
 # second daemon keeps drawing its bar, so kill every daemon of this config by pid.
+# The config path is compared resolved: ~/.i3rc/eww and the repo's own path are
+# the same config (and the same socket), so a daemon started through either counts.
 kill_daemons() {
-    local pid
+    local pid args cfg
+    cfg="$(readlink -f -- "$CFG")"
     "$EWW" --config "$CFG" kill 2>/dev/null
     for pid in $(pgrep -x eww 2>/dev/null); do
-        [ "$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | head -n3)" = \
-          "$(printf '%s\n' "$EWW" --config "$CFG")" ] && kill "$pid" 2>/dev/null
+        mapfile -t args < <(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | head -n3)
+        [ "${args[0]}" = "$EWW" ] && [ "${args[1]}" = --config ] \
+            && [ "$(readlink -f -- "${args[2]}")" = "$cfg" ] && kill "$pid" 2>/dev/null
     done
 }
 
