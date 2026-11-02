@@ -264,9 +264,11 @@ clamp() {
 # tall going forward, square going back. Resized around its own centre, never
 # off the monitor.
 cycle_shape() {
-    local step=$1 x y w h fx fy fw fh side i dw dh tw th n=4 next
+    local step=$1 con x y w h fx fy fw fh side i dw dh tw th n=4 next
+    local s_con s_i s_w s_h state
     local -a sw sh
-    read -r _ _ x y w h fx fy fw fh < <(focused_frame) || return 0
+    state="$(i3rc_runtime_dir)/i3rc-shape"
+    read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
     side=$(( (w < h ? w : h) * SQUARE_PCT / 100 ))
     sw=("$((w * STD_W_PCT / 100))" "$((w * WIDE_W_PCT / 100))" "$((w * VMAX_W_PCT / 100))" "$side")
@@ -282,11 +284,21 @@ cycle_shape() {
             next=$(((i + step + n) % n)); break
         fi
     done
+    # A min size (Firefox: 500px wide) can block a shape: the last one we set
+    # still counts while the frame is the size it really took.
+    read -r s_con s_i s_w s_h 2>/dev/null < "$state"
+    if [ "${s_con:-}" = "$con" ] && [ "${s_w:-}" = "$fw" ] && [ "${s_h:-}" = "$fh" ]; then
+        next=$(((s_i + step + n) % n))
+    fi
 
     tw=${sw[next]}; th=${sh[next]}
-    apply con_id=__focused__ "$tw" "$th" \
+    i3-msg "[con_id=$con] resize set $tw px $th px" >/dev/null
+    # Centre on the size it really took, or a refused shrink drifts it sideways.
+    read -r _ _ tw th < <(frame_of "$con")
+    apply "con_id=$con" "$tw" "$th" \
           "$(clamp "$((fx + (fw - tw) / 2))" "$tw" "$x" "$w")" \
           "$(clamp "$((fy + (fh - th) / 2))" "$th" "$y" "$h")"
+    printf '%s %d %s %s\n' "$con" "$next" "$tw" "$th" > "$state"
 }
 
 # "<con> <floating> <ws-x> <ws-y> <ws-w> <ws-h> <x> <y> <w> <h>" for the focused
