@@ -92,7 +92,7 @@ The rest is tie-breaking you rarely notice:
 |---|---|---|
 | `$mod+Shift+h` / `l` | snap to the left / right half | move it left / right |
 | `$mod+Shift+k` | grow to the whole screen below the bar — still a floating window, not fullscreen | move it up |
-| `$mod+Shift+j` | cycle three fixed shapes: tall (45% × 98%) → wide (98% × 60%) → square (side 75% of the short edge). It resizes around its own centre and stays on screen | move it down |
+| `$mod+Shift+j` | cycle three fixed shapes: tall (45% × 98%) → wide (98% × 60%) → square (side 60% of the short edge). It resizes around its own centre and stays on screen | move it down |
 
 The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they nudge
 it a few pixels. `$mod+Shift+space` tiles the focused window, and `Super+Down`

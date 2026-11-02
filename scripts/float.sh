@@ -25,7 +25,7 @@ STD_H_PCT=${I3RC_STD_H_PCT:-98}
 # percent of the usable workspace, the square's side in percent of its short edge.
 WIDE_W_PCT=${I3RC_WIDE_W_PCT:-98}
 WIDE_H_PCT=${I3RC_WIDE_H_PCT:-60}
-SQUARE_PCT=${I3RC_SQUARE_PCT:-75}
+SQUARE_PCT=${I3RC_SQUARE_PCT:-60}
 
 # `move up`: percent of the usable workspace a window grows to, width and
 # height, centred. The usable workspace already stops at the bar, so 100 is the
