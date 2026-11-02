@@ -17,20 +17,21 @@ PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 # so two still sit side by side, 98% high and centred, with an even margin
 # above and below.
 # Every new normal window opens at this size, centred; it is also the first
-# shape `move down` cycles through.
+# shape of the `move down` / `move up` cycle.
 STD_W_PCT=${I3RC_STD_W_PCT:-45}
 STD_H_PCT=${I3RC_STD_H_PCT:-98}
 
-# `move down` cycles a floating window tall -> wide -> square: the wide one in
-# percent of the usable workspace, the square's side in percent of its short edge.
+# `move down` cycles a floating window tall -> wide -> full -> square -> tall,
+# `move up` the same circle backwards: the wide one in percent of the usable
+# workspace, the square's side in percent of its short edge.
 WIDE_W_PCT=${I3RC_WIDE_W_PCT:-98}
 WIDE_H_PCT=${I3RC_WIDE_H_PCT:-60}
 SQUARE_PCT=${I3RC_SQUARE_PCT:-60}
 
-# `move up`: percent of the usable workspace a window grows to, width and
-# height, centred. The usable workspace already stops at the bar, so 100 is the
-# whole screen below it — still a floating window, not i3's fullscreen, so the
-# bar stays in view.
+# The full shape of the cycle: percent of the usable workspace a
+# window grows to, width and height, centred. The usable workspace already
+# stops at the bar, so 100 is the whole screen below it — still a floating
+# window, not i3's fullscreen, so the bar stays in view.
 VMAX_W_PCT=${I3RC_VMAX_W_PCT:-100}
 VMAX_H_PCT=${I3RC_VMAX_H_PCT:-100}
 
@@ -206,18 +207,13 @@ free_spot() {
     printf '%d %d\n' "${slot_x[i]}" "${slot_y[i]}"
 }
 
-# "<dir> <x> <y> <w> <h> [<win-x> <win-w>]" in, "<W> <H> <X> <Y>" out; only `up`
-# reads the window rect. Integer division; `w - w/2` right half, so no 1px gap.
+# "<dir> <x> <y> <w> <h>" in, "<W> <H> <X> <Y>" out; `up` is the shape cycle,
+# not here. Integer division; `w - w/2` right half, so no 1px gap.
 target() {
     local dir=$1 x=$2 y=$3 w=$4 h=$5 tw th
     case $dir in
         left)  printf '%d %d %d %d\n' "$((w / 2))" "$h" "$x" "$y" ;;
         right) printf '%d %d %d %d\n' "$((w - w / 2))" "$h" "$((x + w / 2))" "$y" ;;
-        up)
-            # The whole workspace (or the share the knobs allow), centred so
-            # any leftover margin is split evenly on every side.
-            tw=$((w * VMAX_W_PCT / 100)); th=$((h * VMAX_H_PCT / 100))
-            printf '%d %d %d %d\n' "$tw" "$th" "$((x + (w - tw) / 2))" "$((y + (h - th) / 2))" ;;
         down)
             tw=$((w * STD_W_PCT / 100)); th=$((h * STD_H_PCT / 100))
             printf '%d %d %d %d\n' "$tw" "$th" "$((x + (w - tw) / 2))" "$((y + (h - th) / 2))" ;;
@@ -240,7 +236,9 @@ cmd_move() {
     case $state in
         user_on|auto_on)
             if [ "$dir" = down ]; then
-                cycle_shape
+                cycle_shape 1
+            elif [ "$dir" = up ]; then
+                cycle_shape -1
             else
                 # shellcheck disable=SC2046  # target prints W H X Y, split on purpose
                 apply con_id=__focused__ $(target "$dir" "$x" "$y" "$w" "$h")
@@ -261,22 +259,27 @@ clamp() {
     printf '%d\n' "$p"
 }
 
-# Next fixed shape after the one the focused floating window has now (tall when
-# it has none), resized around its own centre, never off the monitor.
+# $1 is the step: 1 for the next shape in the circle tall -> wide -> full ->
+# square -> tall, -1 for the one before. A window in none of these shapes gets
+# tall going forward, square going back. Resized around its own centre, never
+# off the monitor.
 cycle_shape() {
-    local x y w h fx fy fw fh side i dw dh next=0 tw th
+    local step=$1 x y w h fx fy fw fh side i dw dh tw th n=4 next
     local -a sw sh
     read -r _ _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
     side=$(( (w < h ? w : h) * SQUARE_PCT / 100 ))
-    sw=("$((w * STD_W_PCT / 100))" "$((w * WIDE_W_PCT / 100))" "$side")
-    sh=("$((h * STD_H_PCT / 100))" "$((h * WIDE_H_PCT / 100))" "$side")
+    sw=("$((w * STD_W_PCT / 100))" "$((w * WIDE_W_PCT / 100))" "$((w * VMAX_W_PCT / 100))" "$side")
+    sh=("$((h * STD_H_PCT / 100))" "$((h * WIDE_H_PCT / 100))" "$((h * VMAX_H_PCT / 100))" "$side")
 
+    # No match: one step from just outside the circle, so forward lands on the
+    # first shape and backward on the last.
+    if [ "$step" -gt 0 ]; then next=0; else next=$((n - 1)); fi
     # 3% slack: a terminal snaps its size to whole cells, so it rarely lands exact.
-    for i in 0 1 2; do
+    for ((i = 0; i < n; i++)); do
         dw=$((fw - sw[i])); dh=$((fh - sh[i]))
         if [ "${dw#-}" -le $((w * 3 / 100)) ] && [ "${dh#-}" -le $((h * 3 / 100)) ]; then
-            next=$(((i + 1) % 3)); break
+            next=$(((i + step + n) % n)); break
         fi
     done
 

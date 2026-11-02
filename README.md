@@ -91,8 +91,8 @@ The rest is tie-breaking you rarely notice:
 | | floating window | tiled window |
 |---|---|---|
 | `$mod+Shift+h` / `l` | snap to the left / right half | move it left / right |
-| `$mod+Shift+k` | grow to the whole screen below the bar — still a floating window, not fullscreen | move it up |
-| `$mod+Shift+j` | cycle three fixed shapes: tall (45% × 98%) → wide (98% × 60%) → square (side 60% of the short edge). It resizes around its own centre and stays on screen | move it down |
+| `$mod+Shift+j` | next shape in a circle of four: tall (45% × 98%) → wide (98% × 60%) → full (the whole screen below the bar — still a floating window, not fullscreen) → square (side 60% of the short edge) → tall. It resizes around its own centre and stays on screen | move it down |
+| `$mod+Shift+k` | the same circle backwards | move it up |
 
 The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they nudge
 it a few pixels. `$mod+Shift+space` tiles the focused window, and `Super+Down`
@@ -157,7 +157,7 @@ Eight knobs, all optional, exported before i3 starts:
 ```bash
 I3RC_STD_W_PCT=45     # standard window width, % of the usable workspace
 I3RC_STD_H_PCT=98     # ...and its height
-I3RC_VMAX_W_PCT=100   # width $mod+Shift+k grows a window to, % of the same
+I3RC_VMAX_W_PCT=100   # width of the full shape in the $mod+Shift+j/k cycle, % of the same
 I3RC_VMAX_H_PCT=100   # ...and its height
 I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
 I3RC_PLACE_ROWS=1     # ...and down it; 1 = vertically centred
