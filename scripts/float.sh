@@ -16,10 +16,16 @@ PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 # Standard window: percent of the usable workspace — a tall rectangle, 45% wide
 # so two still sit side by side, 98% high and centred, with an even margin
 # above and below.
-# Every new normal window opens at this size, and `move down` snaps one back to
-# it, centred.
+# Every new normal window opens at this size, centred; it is also the first
+# shape `move down` cycles through.
 STD_W_PCT=${I3RC_STD_W_PCT:-45}
 STD_H_PCT=${I3RC_STD_H_PCT:-98}
+
+# `move down` cycles a floating window tall -> wide -> square: the wide one in
+# percent of the usable workspace, the square's side in percent of its short edge.
+WIDE_W_PCT=${I3RC_WIDE_W_PCT:-98}
+WIDE_H_PCT=${I3RC_WIDE_H_PCT:-60}
+SQUARE_PCT=${I3RC_SQUARE_PCT:-75}
 
 # `move up`: percent of the usable workspace a window grows to, width and
 # height, centred. The usable workspace already stops at the bar, so 100 is the
@@ -232,9 +238,52 @@ cmd_move() {
     read -r state x y w h < <(focused_state) || return 0
     [ -n "${h:-}" ] || return 0
     case $state in
-        user_on|auto_on) apply con_id=__focused__ $(target "$dir" "$x" "$y" "$w" "$h") ;;
-        *)               i3-msg "move $dir" >/dev/null ;;
+        user_on|auto_on)
+            if [ "$dir" = down ]; then
+                cycle_shape
+            else
+                # shellcheck disable=SC2046  # target prints W H X Y, split on purpose
+                apply con_id=__focused__ $(target "$dir" "$x" "$y" "$w" "$h")
+            fi ;;
+        *) i3-msg "move $dir" >/dev/null ;;
     esac
+}
+
+# "<pos> <size> <ws-start> <ws-size>" in, a start that keeps the frame inside
+# the workspace out, EDGE_GAP_PX from its edges when there is room for that.
+clamp() {
+    local p=$1 s=$2 lo=$3 n=$4 g=$EDGE_GAP_PX hi
+    [ $((n - s)) -lt $((2 * g)) ] && g=$(((n - s) / 2))
+    [ "$g" -lt 0 ] && g=0
+    hi=$((lo + n - s - g)); lo=$((lo + g))
+    [ "$p" -gt "$hi" ] && p=$hi
+    [ "$p" -lt "$lo" ] && p=$lo
+    printf '%d\n' "$p"
+}
+
+# Next fixed shape after the one the focused floating window has now (tall when
+# it has none), resized around its own centre, never off the monitor.
+cycle_shape() {
+    local x y w h fx fy fw fh side i dw dh next=0 tw th
+    local -a sw sh
+    read -r _ _ x y w h fx fy fw fh < <(focused_frame) || return 0
+    [ -n "${fh:-}" ] || return 0
+    side=$(( (w < h ? w : h) * SQUARE_PCT / 100 ))
+    sw=("$((w * STD_W_PCT / 100))" "$((w * WIDE_W_PCT / 100))" "$side")
+    sh=("$((h * STD_H_PCT / 100))" "$((h * WIDE_H_PCT / 100))" "$side")
+
+    # 3% slack: a terminal snaps its size to whole cells, so it rarely lands exact.
+    for i in 0 1 2; do
+        dw=$((fw - sw[i])); dh=$((fh - sh[i]))
+        if [ "${dw#-}" -le $((w * 3 / 100)) ] && [ "${dh#-}" -le $((h * 3 / 100)) ]; then
+            next=$(((i + 1) % 3)); break
+        fi
+    done
+
+    tw=${sw[next]}; th=${sh[next]}
+    apply con_id=__focused__ "$tw" "$th" \
+          "$(clamp "$((fx + (fw - tw) / 2))" "$tw" "$x" "$w")" \
+          "$(clamp "$((fy + (fh - th) / 2))" "$th" "$y" "$h")"
 }
 
 # "<con> <floating> <ws-x> <ws-y> <ws-w> <ws-h> <x> <y> <w> <h>" for the focused
