@@ -305,6 +305,11 @@ rather than by hand: `BLE_I3_BAR=all|main` in its `settings.local`. Either way
 `$mod+Shift+b` toggles every bar at once, and `launch_eww.sh` rebuilds only when
 the outputs actually moved.
 
+A short text of your own can sit right after the last workspace number: the
+first line of `eww/bar-text.local` (git-ignored). No file, or an empty one, and
+nothing shows. The bar re-reads it every 5 seconds, so no restart is needed.
+Write it from best-linux-environment too: `BLE_BAR_TEXT=...` in `settings.local`.
+
 Plugging a monitor in or out, or making another one primary, re-opens the bars by
 itself: `eww/scripts/screen.sh` is already subscribed to i3's `output` events, and
 re-runs `launch_eww.sh` (detached — the relaunch kills the daemon and the listener

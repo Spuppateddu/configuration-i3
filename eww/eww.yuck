@@ -13,6 +13,10 @@
 ;; b-update on this machine: "0", and the segment stays hidden.
 (defpoll updates :interval "60s" :initial "0"
   `b="$HOME/.local/bin/b-update"; [ -x "$b" ] && "$b" --count || echo 0`)
+;; Free text shown after the workspaces, from the git-ignored bar-text.local
+;; (best-linux-environment's BLE_BAR_TEXT). No file: empty, and hidden.
+(defpoll bartext :interval "5s" :initial ""
+  `head -n1 "$HOME/.i3rc/eww/bar-text.local" 2>/dev/null || true`)
 ;; Layout density *and* the bar's output name (scripts/screen.sh). `scr.mon`
 ;; re-emits on every output event, so it never points at a dead monitor.
 ;; The initial value mirrors screen.sh's `wide` tier, so the first frame drawn
@@ -210,6 +214,7 @@
     ;; to_entries keeps workspaces.sh's group_by order, so cards don't reshuffle.
     (detachedcards
       :wssl {jq(wsmap, "if ${others} then [to_entries[] | select(.key != \"${mon}\") | .value] else [] end")})
+    (label :class "bartext" :visible {bartext != ""} :limit-width 60 :text bartext)
     ;; The one spacer sits HERE, left of the media island: media + status ride the
     ;; right edge as one block. After it instead, the title drifts to the middle.
     (box :hexpand true)

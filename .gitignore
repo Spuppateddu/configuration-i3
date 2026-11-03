@@ -29,3 +29,7 @@ size.local.conf
 # Which monitors the bar opens on, written by best-linux-environment's
 # settings.local (BLE_I3_BAR). Read by scripts/eww_lib.sh's bar_mode.
 bar.local.conf
+
+# The free text after the workspaces, written by best-linux-environment's
+# settings.local (BLE_BAR_TEXT). Already caught by *.local; named for clarity.
+eww/bar-text.local

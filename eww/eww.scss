@@ -54,6 +54,12 @@ window { background: transparent; }
   margin-right: 4px;
 }
 
+// Free text after the workspaces (bar-text.local), plain like the status text.
+.bartext {
+  color: $text;
+  margin-left: 6px;
+}
+
 // workspaces
 // Equal rounded squares, not text-width pills: min-width == min-height and no
 // padding, so "1" and "10" get the same tile and the row never re-flows.
