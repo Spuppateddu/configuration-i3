@@ -254,7 +254,7 @@ clamp() {
 }
 
 # $1 left|right: one stop that way, left edge -> centre -> right edge, at the
-# window's own size and height; stops at the ends. 2px slack per stop.
+# window's own size; at the edge already, that half of the screen. 2px slack.
 slide() {
     local dir=$1 con x y w h fx fy fw fh to p
     read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
@@ -262,10 +262,19 @@ slide() {
     local -a stops=("$(clamp "$x" "$fw" "$x" "$w")"
                     "$(clamp "$((x + (w - fw) / 2))" "$fw" "$x" "$w")"
                     "$(clamp "$((x + w))" "$fw" "$x" "$w")")
+    # Past an edge stop (a half sits flush) counts as on it, so no 16px nudge.
+    [ "$fx" -lt "${stops[0]}" ] && fx=${stops[0]}
+    [ "$fx" -gt "${stops[2]}" ] && fx=${stops[2]}
     if [ "$dir" = left ]; then
+        if [ "$fx" -le $((stops[0] + 2)) ]; then
+            apply "con_id=$con" "$((w / 2))" "$h" "$x" "$y"; return
+        fi
         to=${stops[0]}
         for p in "${stops[@]}"; do [ "$p" -lt $((fx - 2)) ] && to=$p; done
     else
+        if [ "$fx" -ge $((stops[2] - 2)) ]; then
+            apply "con_id=$con" "$((w - w / 2))" "$h" "$((x + w / 2))" "$y"; return
+        fi
         to=${stops[2]}
         for p in "${stops[2]}" "${stops[1]}" "${stops[0]}"; do
             [ "$p" -gt $((fx + 2)) ] && to=$p

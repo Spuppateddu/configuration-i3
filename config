@@ -137,7 +137,7 @@ bindsym $mod+Up     exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh up
 bindsym $mod+Right  exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh right
 
 # ── Move / snap ───────────────────────────────────────────────────────────
-# Layout-aware, because i3 can't be: floating, h/l step left edge/centre/right,
+# Layout-aware, because i3 can't be: floating, h/l step edge/centre/edge, then half,
 # k/j step up/down full, tall, square, box. A tiled one moves. float.sh.
 bindsym $mod+Shift+$left  exec --no-startup-id ~/.i3rc/scripts/float.sh move left
 bindsym $mod+Shift+$down  exec --no-startup-id ~/.i3rc/scripts/float.sh move down
