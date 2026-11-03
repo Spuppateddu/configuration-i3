@@ -16,21 +16,21 @@ PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 # Standard window: percent of the usable workspace — a tall rectangle, 45% wide
 # so two still sit side by side, 98% high and centred, with an even margin
 # above and below.
-# Every new normal window opens at this size, centred; it is also the first
-# shape of the `move down` / `move up` cycle.
+# Every new normal window opens at this size, centred; it is also a rung of
+# the `move up` / `move down` ladder below.
 STD_W_PCT=${I3RC_STD_W_PCT:-45}
 STD_H_PCT=${I3RC_STD_H_PCT:-98}
 
-# `move down` cycles a floating window tall -> wide -> full -> square -> tall,
-# `move up` the same circle backwards: the wide one in percent of the usable
-# workspace, the square's side in percent of its short edge.
-WIDE_W_PCT=${I3RC_WIDE_W_PCT:-98}
-WIDE_H_PCT=${I3RC_WIDE_H_PCT:-60}
+# The ladder, `move up` one rung bigger, `move down` one smaller, stopping at
+# the ends: full -> tall (STD) -> square -> box. The square's side in percent
+# of the short edge.
 SQUARE_PCT=${I3RC_SQUARE_PCT:-60}
 
-# The full shape of the cycle: percent of the usable workspace a
-# window grows to, width and height, centred. The usable workspace already
-# stops at the bar, so 100 is the whole screen below it — still a floating
+# The box, the smallest rung: always 16:9, its width in percent of the usable
+# workspace, its height from that width.
+BOX_W_PCT=${I3RC_BOX_W_PCT:-40}
+
+# The full shape, the top rung: percent of the usable workspace, centred. 100 is the whole screen below the bar — still a floating
 # window, not i3's fullscreen, so the bar stays in view.
 VMAX_W_PCT=${I3RC_VMAX_W_PCT:-100}
 VMAX_H_PCT=${I3RC_VMAX_H_PCT:-100}
@@ -207,13 +207,10 @@ free_spot() {
     printf '%d %d\n' "${slot_x[i]}" "${slot_y[i]}"
 }
 
-# "<dir> <x> <y> <w> <h>" in, "<W> <H> <X> <Y>" out; `up` is the shape cycle,
-# not here. Integer division; `w - w/2` right half, so no 1px gap.
+# "down <x> <y> <w> <h>" in, "<W> <H> <X> <Y>" out: the standard size, centred.
 target() {
     local dir=$1 x=$2 y=$3 w=$4 h=$5 tw th
     case $dir in
-        left)  printf '%d %d %d %d\n' "$((w / 2))" "$h" "$x" "$y" ;;
-        right) printf '%d %d %d %d\n' "$((w - w / 2))" "$h" "$((x + w / 2))" "$y" ;;
         down)
             tw=$((w * STD_W_PCT / 100)); th=$((h * STD_H_PCT / 100))
             printf '%d %d %d %d\n' "$tw" "$th" "$((x + (w - tw) / 2))" "$((y + (h - th) / 2))" ;;
@@ -235,13 +232,10 @@ cmd_move() {
     [ -n "${h:-}" ] || return 0
     case $state in
         user_on|auto_on)
-            if [ "$dir" = down ]; then
-                cycle_shape 1
-            elif [ "$dir" = up ]; then
-                cycle_shape -1
+            if [ "$dir" = down ] || [ "$dir" = up ]; then
+                set_shape "$dir"
             else
-                # shellcheck disable=SC2046  # target prints W H X Y, split on purpose
-                apply con_id=__focused__ $(target "$dir" "$x" "$y" "$w" "$h")
+                slide "$dir"
             fi ;;
         *) i3-msg "move $dir" >/dev/null ;;
     esac
@@ -259,45 +253,70 @@ clamp() {
     printf '%d\n' "$p"
 }
 
-# $1 is the step: 1 for the next shape in the circle tall -> wide -> full ->
-# square -> tall, -1 for the one before. A window in none of these shapes gets
-# tall going forward, square going back. Resized around its own centre, never
-# off the monitor.
-cycle_shape() {
-    local step=$1 con x y w h fx fy fw fh side i dw dh tw th n=4 next
+# $1 left|right: one stop that way, left edge -> centre -> right edge, at the
+# window's own size and height; stops at the ends. 2px slack per stop.
+slide() {
+    local dir=$1 con x y w h fx fy fw fh to p
+    read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
+    [ -n "${fh:-}" ] || return 0
+    local -a stops=("$(clamp "$x" "$fw" "$x" "$w")"
+                    "$(clamp "$((x + (w - fw) / 2))" "$fw" "$x" "$w")"
+                    "$(clamp "$((x + w))" "$fw" "$x" "$w")")
+    if [ "$dir" = left ]; then
+        to=${stops[0]}
+        for p in "${stops[@]}"; do [ "$p" -lt $((fx - 2)) ] && to=$p; done
+    else
+        to=${stops[2]}
+        for p in "${stops[2]}" "${stops[1]}" "${stops[0]}"; do
+            [ "$p" -gt $((fx + 2)) ] && to=$p
+        done
+    fi
+    i3-msg "[con_id=$con] move position $to px $fy px" >/dev/null
+}
+
+# $1 up|down: one rung up or down full -> tall -> square -> box, centred on the
+# workspace. Stops at the ends; any other shape gets tall (up) or square (down).
+set_shape() {
+    local dir=$1 con x y w h fx fy fw fh side i dw dh tw th next cur=-1
     local s_con s_i s_w s_h state
     local -a sw sh
-    state="$(i3rc_runtime_dir)/i3rc-shape"
+    state="$(i3rc_runtime_dir)/i3rc-ladder"
     read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
     side=$(( (w < h ? w : h) * SQUARE_PCT / 100 ))
-    sw=("$((w * STD_W_PCT / 100))" "$((w * WIDE_W_PCT / 100))" "$((w * VMAX_W_PCT / 100))" "$side")
-    sh=("$((h * STD_H_PCT / 100))" "$((h * WIDE_H_PCT / 100))" "$((h * VMAX_H_PCT / 100))" "$side")
+    # Rungs, biggest first: 0 full, 1 tall, 2 square, 3 box.
+    sw=("$((w * VMAX_W_PCT / 100))" "$((w * STD_W_PCT / 100))" "$side" "$((w * BOX_W_PCT / 100))")
+    sh=("$((h * VMAX_H_PCT / 100))" "$((h * STD_H_PCT / 100))" "$side" "$((w * BOX_W_PCT * 9 / 1600))")
 
-    # No match: one step from just outside the circle, so forward lands on the
-    # first shape and backward on the last.
-    if [ "$step" -gt 0 ]; then next=0; else next=$((n - 1)); fi
     # 3% slack: a terminal snaps its size to whole cells, so it rarely lands exact.
-    for ((i = 0; i < n; i++)); do
+    for ((i = 0; i < 4; i++)); do
         dw=$((fw - sw[i])); dh=$((fh - sh[i]))
         if [ "${dw#-}" -le $((w * 3 / 100)) ] && [ "${dh#-}" -le $((h * 3 / 100)) ]; then
-            next=$(((i + step + n) % n)); break
+            cur=$i; break
         fi
     done
     # A min size (Firefox: 500px wide) can block a shape: the last one we set
     # still counts while the frame is the size it really took.
     read -r s_con s_i s_w s_h 2>/dev/null < "$state"
     if [ "${s_con:-}" = "$con" ] && [ "${s_w:-}" = "$fw" ] && [ "${s_h:-}" = "$fh" ]; then
-        next=$(((s_i + step + n) % n))
+        cur=$s_i
+    fi
+
+    if [ "$cur" -lt 0 ]; then
+        if [ "$dir" = up ]; then next=1; else next=2; fi
+    elif [ "$dir" = up ]; then
+        next=$((cur > 0 ? cur - 1 : 0))
+    else
+        next=$((cur < 3 ? cur + 1 : 3))
     fi
 
     tw=${sw[next]}; th=${sh[next]}
     i3-msg "[con_id=$con] resize set $tw px $th px" >/dev/null
-    # Centre on the size it really took, or a refused shrink drifts it sideways.
+    # Centre on the size it really took, or a refused shrink lands off-centre.
     read -r _ _ tw th < <(frame_of "$con")
     apply "con_id=$con" "$tw" "$th" \
-          "$(clamp "$((fx + (fw - tw) / 2))" "$tw" "$x" "$w")" \
-          "$(clamp "$((fy + (fh - th) / 2))" "$th" "$y" "$h")"
+          "$(clamp "$((x + (w - tw) / 2))" "$tw" "$x" "$w")" \
+          "$(clamp "$((y + (h - th) / 2))" "$th" "$y" "$h")"
     printf '%s %d %s %s\n' "$con" "$next" "$tw" "$th" > "$state"
 }
 
