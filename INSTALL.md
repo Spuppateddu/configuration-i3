@@ -327,7 +327,7 @@ If the top bar doesn't appear:
 | `$mod+Return` | Terminal (alacritty) |
 | `$mod+b` | Browser (firefox, new window) |
 | `$mod+n` | Browser (firefox, new private window) |
-| `$mod+d` | App launcher (rofi) |
+| `$mod+space` | App launcher (rofi) |
 | `$mod+Tab` | Window switcher (rofi) |
 | `$mod+q` | Kill focused window |
 | `$mod+Shift+b` | Show/hide the top bar (eww) |

@@ -98,8 +98,8 @@ bindsym $mod+b exec --no-startup-id firefox --new-window
 bindsym $mod+n exec --no-startup-id firefox --private-window
 
 # App launcher (rofi drun) and window switcher.
-bindsym $mod+d   exec --no-startup-id rofi -show drun -config ~/.i3rc/rofi/config.rasi
-bindsym $mod+Tab exec --no-startup-id sh -c 'rofi -show window -config ~/.i3rc/rofi/config.rasi && ~/.i3rc/scripts/warp_pointer.sh'
+bindsym $mod+space exec --no-startup-id rofi -show drun -config ~/.i3rc/rofi/config.rasi
+bindsym $mod+Tab   exec --no-startup-id sh -c 'rofi -show window -config ~/.i3rc/rofi/config.rasi && ~/.i3rc/scripts/warp_pointer.sh'
 
 # Toggle terminal (Alacritty) light/dark colour scheme.
 bindsym $mod+Shift+t exec --no-startup-id ~/.i3rc/scripts/theme.sh toggle
@@ -159,7 +159,6 @@ bindsym $mod+s layout stacking
 bindsym $mod+w layout tabbed
 bindsym $mod+e layout toggle split
 bindsym $mod+Shift+space floating toggle
-bindsym $mod+space focus mode_toggle; $warp
 bindsym $mod+a focus parent
 
 # Same key, whole desktop: floating desktop <-> plain tiling i3, existing
