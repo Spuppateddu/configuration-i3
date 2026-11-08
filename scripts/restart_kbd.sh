@@ -15,6 +15,13 @@ apply() {
     setxkbmap -option ctrl:nocaps
 }
 
+# IBus, when it uses its own layout, re-sets the keymap with no options and
+# drops Caps->Ctrl. Using the system layout makes it leave the keymap alone.
+if command -v gsettings >/dev/null 2>&1 \
+        && gsettings list-keys org.freedesktop.ibus.general 2>/dev/null | grep -qx use-system-keyboard-layout; then
+    gsettings set org.freedesktop.ibus.general use-system-keyboard-layout true
+fi
+
 # The pid in the file is a claim, not proof — the runtime dir can outlive a
 # reboot. Basename compare: i3 invokes by absolute path, a hand-run may not.
 is_self() {
