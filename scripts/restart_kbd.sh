@@ -77,7 +77,9 @@ trap 'cleanup; exit 0' TERM INT
 # `udevadm monitor` ends on a udev restart, which would silently kill the tuning.
 while true; do
     while read -r line <&3; do
-        case "$line" in *" add "*) apply ;; esac
+        # udev says "add" before X has opened the new keyboard: apply now and
+        # again a moment later, or X sets it up with no options.
+        case "$line" in *" add "*) apply; sleep 1; apply ;; esac
     done
     sleep 1
     open_monitor
