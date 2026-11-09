@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Shared helpers for the eww bar launcher (launch_eww.sh), the toggle
-# (toggle_eww.sh) and the layout emitter (eww/scripts/screen.sh).
+# Shared helpers for the eww bar launcher (launch_eww.sh) and the layout emitter
+# (eww/scripts/screen.sh).
 # Sourced, not executed.
 
 # Derived from this file's location, so a working copy uses its own siblings.
@@ -169,13 +169,4 @@ eww_open_bar() {
     done
     rm -f "$BAR_SCREEN_STATE"
     return 1
-}
-
-# Close every bar window, whatever output it was opened on.
-eww_close_bars() {
-    local id
-    while read -r id; do
-        [ -n "$id" ] && "$EWW" --config "$CFG" close "$id" 2>/dev/null
-    done < <(eww_bar_ids)
-    rm -f "$BAR_SCREEN_STATE"
 }

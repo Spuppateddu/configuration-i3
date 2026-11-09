@@ -100,9 +100,6 @@ bindsym $mod+Tab   exec --no-startup-id sh -c 'rofi -show window -config ~/.i3rc
 # Toggle terminal (Alacritty) light/dark colour scheme.
 bindsym $mod+Shift+t exec --no-startup-id ~/.i3rc/scripts/theme.sh toggle
 
-# Toggle the top menu bar (eww).
-bindsym $mod+Shift+b exec --no-startup-id ~/.i3rc/scripts/toggle_eww.sh
-
 # Screenshot. The last two are one chord: i3 matches the post-modifier keysym,
 # which is `4` or `dollar` depending on layout, so both are bound.
 bindsym $mod+Shift+s exec --no-startup-id flameshot gui

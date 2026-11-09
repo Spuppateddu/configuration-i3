@@ -301,9 +301,8 @@ BAR_SCREENS=main   # primary only + detached cards; `all` (the default) is one b
 
 Write it from
 [best-linux-environment](https://github.com/Spuppateddu/best-linux-environment)
-rather than by hand: `BLE_I3_BAR=all|main` in its `settings.local`. Either way
-`$mod+Shift+b` toggles every bar at once, and `launch_eww.sh` rebuilds only when
-the outputs actually moved.
+rather than by hand: `BLE_I3_BAR=all|main` in its `settings.local`. Either way `launch_eww.sh` rebuilds
+only when the outputs actually moved.
 
 A short text of your own can sit right after the last workspace number: the
 first line of `eww/bar-text.local` (git-ignored). No file, or an empty one, and
@@ -358,7 +357,6 @@ into `screen.sh`'s tier table, or just `xrandr --output <o> --mode <smaller>`.
 ├── ncmpcpp/config
 └── scripts/
     ├── launch_eww.sh          # runs the bar: one per monitor, or primary only
-    ├── toggle_eww.sh          # show/hide the bar ($mod+Shift+b)
     ├── eww_lib.sh             # shared: output detection + bar open (sourced)
     ├── emit_lib.sh            # shared: JSON escape + resubscribe loop (sourced)
     ├── powermenu.sh           # rofi lock/suspend/reboot/shutdown

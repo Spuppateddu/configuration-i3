@@ -329,7 +329,6 @@ If the top bar doesn't appear:
 | `$mod+space` | App launcher (rofi) |
 | `$mod+Tab` | Window switcher (rofi) |
 | `$mod+q` | Kill focused window |
-| `$mod+Shift+b` | Show/hide the top bar (eww) |
 | `$mod+Shift+t` | Terminal light/dark toggle (see §9) |
 | `$mod+Shift+s` | Screenshot (flameshot) |
 | `$mod+Shift+x` | Lock screen |
