@@ -78,8 +78,10 @@ trap 'cleanup; exit 0' TERM INT
 while true; do
     while read -r line <&3; do
         # udev says "add" before X has opened the new keyboard: apply now and
-        # again a moment later, or X sets it up with no options.
-        case "$line" in *" add "*) apply; sleep 1; apply ;; esac
+        # again a moment later, or X sets it up with no options. "change" too:
+        # X re-opens the keyboard on it (e.g. `udevadm trigger --action=change`
+        # after a hwdb update), which resets the repeat rate to its default.
+        case "$line" in *" add "*|*" change "*) apply; sleep 1; apply ;; esac
     done
     sleep 1
     open_monitor
