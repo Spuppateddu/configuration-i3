@@ -283,8 +283,8 @@ slide() {
     i3-msg "[con_id=$con] move position $to px $fy px" >/dev/null
 }
 
-# $1 up|down: one rung up or down full -> tall -> square -> box, centred on the
-# workspace. Stops at the ends; any other shape gets tall (up) or square (down).
+# $1 up|down: one rung up or down full -> tall -> square -> box, centred
+# vertically, left edge kept. Stops at the ends; any other shape gets tall (up) or square (down).
 set_shape() {
     local dir=$1 con x y w h fx fy fw fh side i dw dh tw th next cur=-1
     local s_con s_i s_w s_h state
@@ -321,10 +321,12 @@ set_shape() {
 
     tw=${sw[next]}; th=${sh[next]}
     i3-msg "[con_id=$con] resize set $tw px $th px" >/dev/null
-    # Centre on the size it really took, or a refused shrink lands off-centre.
+    # Keep the window's left edge where it was (pulled back inside the workspace
+    # if the new width runs past an edge) and centre it vertically. Read the
+    # size it really took, so a refused shrink lands right.
     read -r _ _ tw th < <(frame_of "$con")
     apply "con_id=$con" "$tw" "$th" \
-          "$(clamp "$((x + (w - tw) / 2))" "$tw" "$x" "$w")" \
+          "$(clamp "$fx" "$tw" "$x" "$w")" \
           "$(clamp "$((y + (h - th) / 2))" "$th" "$y" "$h")"
     printf '%s %d %s %s\n' "$con" "$next" "$tw" "$th" > "$state"
 }

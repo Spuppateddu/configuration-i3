@@ -91,8 +91,8 @@ The rest is tie-breaking you rarely notice:
 | | floating window | tiled window |
 |---|---|---|
 | `$mod+Shift+h` / `l` | one step left / right, left edge ⇄ centre ⇄ right edge, same size; once more at an edge snaps it to that half of the screen | move it left / right |
-| `$mod+Shift+k` | one step bigger on the ladder full → tall → square → box, centred; stops at full | move it up |
-| `$mod+Shift+j` | one step smaller on the same ladder, centred; stops at box | move it down |
+| `$mod+Shift+k` | one step bigger on the ladder full → tall → square → box, centred vertically, left edge kept; stops at full | move it up |
+| `$mod+Shift+j` | one step smaller on the same ladder, centred vertically, left edge kept; stops at box | move it down |
 
 The ladder's steps: **full** (the whole screen below the bar — still a floating
 window, not fullscreen), **tall** (45% × 98%), **square** (side 60% of the short
