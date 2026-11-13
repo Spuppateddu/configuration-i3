@@ -22,13 +22,9 @@ STD_W_PCT=${I3RC_STD_W_PCT:-45}
 STD_H_PCT=${I3RC_STD_H_PCT:-100}
 
 # The ladder, `move up` one rung bigger, `move down` one smaller, stopping at
-# the ends: full -> tall (STD) -> square -> box. The square's side in percent
-# of the short edge.
+# the ends: full -> tall (STD) -> square. The square's side in percent of the
+# short edge.
 SQUARE_PCT=${I3RC_SQUARE_PCT:-60}
-
-# The box, the smallest rung: always 16:9, its width in percent of the usable
-# workspace, its height from that width.
-BOX_W_PCT=${I3RC_BOX_W_PCT:-40}
 
 # The full shape, the top rung: percent of the usable workspace, centred. 100 is the whole screen below the bar — still a floating
 # window, not i3's fullscreen, so the bar stays in view.
@@ -390,7 +386,7 @@ quarter() {
     return 0
 }
 
-# $1 up|down: one rung up or down full -> tall -> square -> box, centred
+# $1 up|down: one rung up or down full -> tall -> square, centred
 # vertically, left edge kept. Stops at the ends; any other shape gets tall (up) or square (down).
 set_shape() {
     local dir=$1 con x y w h fx fy fw fh side i dw dh tw th next cur=-1
@@ -400,12 +396,12 @@ set_shape() {
     read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
     side=$(( (w < h ? w : h) * SQUARE_PCT / 100 ))
-    # Rungs, biggest first: 0 full, 1 tall, 2 square, 3 box.
-    sw=("$((w * VMAX_W_PCT / 100))" "$((w * STD_W_PCT / 100))" "$side" "$((w * BOX_W_PCT / 100))")
-    sh=("$((h * VMAX_H_PCT / 100))" "$((h * STD_H_PCT / 100))" "$side" "$((w * BOX_W_PCT * 9 / 1600))")
+    # Rungs, biggest first: 0 full, 1 tall, 2 square.
+    sw=("$((w * VMAX_W_PCT / 100))" "$((w * STD_W_PCT / 100))" "$side")
+    sh=("$((h * VMAX_H_PCT / 100))" "$((h * STD_H_PCT / 100))" "$side")
 
     # 3% slack: a terminal snaps its size to whole cells, so it rarely lands exact.
-    for ((i = 0; i < 4; i++)); do
+    for ((i = 0; i < 3; i++)); do
         dw=$((fw - sw[i])); dh=$((fh - sh[i]))
         if [ "${dw#-}" -le $((w * 3 / 100)) ] && [ "${dh#-}" -le $((h * 3 / 100)) ]; then
             cur=$i; break
@@ -423,7 +419,7 @@ set_shape() {
     elif [ "$dir" = up ]; then
         next=$((cur > 0 ? cur - 1 : 0))
     else
-        next=$((cur < 3 ? cur + 1 : 3))
+        next=$((cur < 2 ? cur + 1 : 2))
     fi
 
     tw=${sw[next]}; th=${sh[next]}

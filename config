@@ -131,7 +131,7 @@ bindsym $mod+Right  exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh right
 
 # ── Move / snap ───────────────────────────────────────────────────────────
 # Layout-aware, because i3 can't be: floating, h/l step edge/centre/edge, then half,
-# k/j step up/down full, tall, square, box; on a left/right half, k/j take its
+# k/j step up/down full, tall, square; on a left/right half, k/j take its
 # top/bottom quarter and the other key goes back to the half. Landing exactly on another window
 # nudges it 48px that way (or the other way at an edge). A tiled one moves. float.sh.
 bindsym $mod+Shift+$left  exec --no-startup-id ~/.i3rc/scripts/float.sh move left

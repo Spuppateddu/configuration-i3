@@ -338,8 +338,8 @@ If the top bar doesn't appear:
 | `$mod+f` | Fullscreen |
 | `$mod+h/j/k/l` | Focus left/down/up/right |
 | `$mod+Shift+h/l` | Floating: one step left/right, left edge ⇄ centre ⇄ right edge, same size; once more at an edge, that half — tiled: move window |
-| `$mod+Shift+k` | Floating: one step bigger, full ← tall ← square ← box (full is below the bar, not fullscreen) — tiled: move window |
-| `$mod+Shift+j` | Floating: one step smaller, full → tall → square → box — tiled: move window |
+| `$mod+Shift+k` | Floating: one step bigger, full ← tall ← square (full is below the bar, not fullscreen) — tiled: move window |
+| `$mod+Shift+j` | Floating: one step smaller, full → tall → square — tiled: move window |
 | `$mod+Shift+←↓↑→` | Move window, never snaps (nudges a floating one) |
 | `$mod+Shift+space` | Float ↔ tile the focused window |
 | `$mod+Control+space` | Float ↔ tile the **whole desktop**, open windows included (reloads i3) |
