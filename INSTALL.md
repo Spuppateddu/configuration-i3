@@ -376,7 +376,7 @@ If the top bar doesn't appear:
   `i3-msg '[floating] border normal <n>'`. Tiling mode has its own knob:
   `I3RC_TILE_BORDER_PX` (default 2), see the README's *Tiling mode*.
 - **Floating window size** — `I3RC_STD_W_PCT` / `I3RC_STD_H_PCT` (percent of the
-  usable workspace, default 45/98 — a tall rectangle) and `I3RC_VMAX_W_PCT` /
+  usable workspace, default 45/100 — a tall rectangle) and `I3RC_VMAX_W_PCT` /
   `I3RC_VMAX_H_PCT` (the full shape, top of the `$mod+Shift+j/k` ladder, default 100/100) read by
   `scripts/float.sh`; see the README's
   *Floating desktop* section.
@@ -386,9 +386,6 @@ If the top bar doesn't appear:
   much of the previously focused window a new one may hide and still count as a
   free spot, in percent of its area, default 25; `0` allows only spots that do
   not touch it), also read by `scripts/float.sh`.
-- **Room from the screen edges** — `I3RC_EDGE_GAP_PX` (pixels a newly opened
-  window keeps from the borders of the usable workspace, default 16; `0` lets a
-  window sit flush against an edge), also read by `scripts/float.sh`.
 - **Plain tiling i3** — `$mod+Control+space`, or `scripts/desktop_mode.sh
   tiling`. It writes `90-tiling-mode.local` and reloads; `floating` deletes it
   again, and `status` prints which mode is on. While tiling, only the focused

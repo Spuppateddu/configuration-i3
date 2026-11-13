@@ -14,12 +14,12 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/runtime_lib.sh" || e
 PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
 
 # Standard window: percent of the usable workspace — a tall rectangle, 45% wide
-# so two still sit side by side, 98% high and centred, with an even margin
-# above and below.
+# so two still sit side by side, and the full height of the usable workspace,
+# from the bar to the bottom edge.
 # Every new normal window opens at this size, centred; it is also a rung of
 # the `move up` / `move down` ladder below.
 STD_W_PCT=${I3RC_STD_W_PCT:-45}
-STD_H_PCT=${I3RC_STD_H_PCT:-98}
+STD_H_PCT=${I3RC_STD_H_PCT:-100}
 
 # The ladder, `move up` one rung bigger, `move down` one smaller, stopping at
 # the ends: full -> tall (STD) -> square -> box. The square's side in percent
@@ -44,11 +44,6 @@ PLACE_ROWS=${I3RC_PLACE_ROWS:-1}
 # its area. Every spot under this counts as free and can be drawn; 0 means only
 # spots that hide nothing of it at all.
 MAX_COVER_PCT=${I3RC_MAX_COVER_PCT:-25}
-
-# Breathing room a new window keeps from the edges of the usable workspace, in
-# pixels: no frame is ever flush against a screen edge or the bar. Shrunk on the
-# spot if a window is too big to fit with it, so a slot always exists.
-EDGE_GAP_PX=${I3RC_EDGE_GAP_PX:-16}
 
 # $mod+Shift+h/j/k/l: when a window lands exactly on top of another one (same
 # spot and size, NUDGE_SLACK_PX of slack for terminals that snap to cells), it
@@ -136,13 +131,13 @@ slots() {
 # degrades quietly rather than piling every window in one spot.
 #
 # Slots that leave the *other* windows untouched as well are preferred whenever
-# there are any: free screen is used before anything is buried. Slots stay
-# EDGE_GAP_PX inside the workspace, so nothing ever opens flush against an edge.
+# there are any: free screen is used before anything is buried. The outer slots
+# sit flush against the workspace edges.
 free_spot() {
     local id=$1 w=$2 h=$3 cx=$4 cy=$5 x=$6 y=$7 ww=$8 wh=$9
     local -a px=() py=() pw=() ph=() cols=() rows=()
     local -a slot_x=() slot_y=() hid=() other=() pick=() clean=()
-    local a b c d f i sx sy gx gy ox oy area
+    local a b c d f i sx sy ox oy area
     local prev=-1 ref_area=0 best=-1 limit thr
 
     while read -r a b c d f; do
@@ -163,16 +158,8 @@ free_spot() {
     fi
     limit=$((ref_area * MAX_COVER_PCT / 100))
 
-    # The edge gap, per axis, never more than half of what the window leaves
-    # free: a window with no room to spare keeps its centred position instead.
-    gx=$EDGE_GAP_PX; gy=$EDGE_GAP_PX
-    [ $((ww - w)) -lt $((2 * gx)) ] && gx=$(((ww - w) / 2))
-    [ $((wh - h)) -lt $((2 * gy)) ] && gy=$(((wh - h) / 2))
-    [ "$gx" -lt 0 ] && gx=0
-    [ "$gy" -lt 0 ] && gy=0
-
-    mapfile -t cols < <(slots "$PLACE_COLS" "$((x + gx))" "$((x + ww - w - gx))" "$cx")
-    mapfile -t rows < <(slots "$PLACE_ROWS" "$((y + gy))" "$((y + wh - h - gy))" "$cy")
+    mapfile -t cols < <(slots "$PLACE_COLS" "$x" "$((x + ww - w))" "$cx")
+    mapfile -t rows < <(slots "$PLACE_ROWS" "$y" "$((y + wh - h))" "$cy")
 
     # Pass one: for every slot, how much of the reference window it would hide,
     # and how much of everything else.
@@ -243,7 +230,7 @@ cmd_move() {
             [ -n "${h:-}" ] || return 0
             before=$(frame_of "$con")
             if [ "$dir" = down ] || [ "$dir" = up ]; then
-                set_shape "$dir"
+                quarter "$dir" || set_shape "$dir"
             else
                 slide "$dir"
             fi
@@ -265,12 +252,11 @@ cmd_move() {
 }
 
 # "<pos> <size> <ws-start> <ws-size>" in, a start that keeps the frame inside
-# the workspace out, EDGE_GAP_PX from its edges when there is room for that.
+# the workspace out, flush against an edge at most. A frame bigger than the
+# workspace starts at its start edge.
 clamp() {
-    local p=$1 s=$2 lo=$3 n=$4 g=$EDGE_GAP_PX hi
-    [ $((n - s)) -lt $((2 * g)) ] && g=$(((n - s) / 2))
-    [ "$g" -lt 0 ] && g=0
-    hi=$((lo + n - s - g)); lo=$((lo + g))
+    local p=$1 s=$2 lo=$3 n=$4 hi
+    hi=$((lo + n - s))
     [ "$p" -gt "$hi" ] && p=$hi
     [ "$p" -lt "$lo" ] && p=$lo
     printf '%d\n' "$p"
@@ -285,7 +271,7 @@ slide() {
     local -a stops=("$(clamp "$x" "$fw" "$x" "$w")"
                     "$(clamp "$((x + (w - fw) / 2))" "$fw" "$x" "$w")"
                     "$(clamp "$((x + w))" "$fw" "$x" "$w")")
-    # Past an edge stop (a half sits flush) counts as on it, so no 16px nudge.
+    # Past an edge stop counts as on it.
     [ "$fx" -lt "${stops[0]}" ] && fx=${stops[0]}
     [ "$fx" -gt "${stops[2]}" ] && fx=${stops[2]}
     if [ "$dir" = left ]; then
@@ -336,8 +322,7 @@ unstack() {
                 up)    ny=$(clamp "$((fy - NUDGE_PX))" "$fh" "$y" "$h") ;;
                 down)  ny=$(clamp "$((fy + NUDGE_PX))" "$fh" "$y" "$h") ;;
             esac
-            # No room that way: the clamp left it in place, or pulled it the
-            # other way into the edge gap. Try the next way.
+            # No room that way: the clamp left it in place. Try the next way.
             case $d2 in
                 left)  [ "$nx" -lt "$fx" ] || continue ;;
                 right) [ "$nx" -gt "$fx" ] || continue ;;
@@ -363,6 +348,46 @@ stacked_on() {
             [ "${dw#-}" -le "$s" ] && [ "${dh#-}" -le "$s" ] && return 0
     done
     return 1
+}
+
+# "<a> <b> <slack>" in: true if a and b are at most slack apart.
+near() {
+    local d=$(($1 - $2))
+    [ "${d#-}" -le "$3" ]
+}
+
+# $1 up|down: the left or right half of the screen splits in two, k to its top
+# quarter, j to its bottom one. A quarter goes back to its half with the other
+# key, and stays put with the same one. Anything else returns 1, so the ladder
+# below takes the key. 3% slack, like the ladder: terminals snap to cells.
+quarter() {
+    local dir=$1 con x y w h fx fy fw fh lw rw qh bh sx sy cx cw row
+    read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 1
+    [ -n "${fh:-}" ] || return 1
+    lw=$((w / 2)); rw=$((w - w / 2)); qh=$((h / 2)); bh=$((h - h / 2))
+    sx=$((w * 3 / 100)); sy=$((h * 3 / 100))
+
+    # Which column: the frame's left edge and width match the left or right half.
+    if near "$fx" "$x" "$sx" && near "$fw" "$lw" "$sx"; then
+        cx=$x; cw=$lw
+    elif near "$fx" "$((x + lw))" "$sx" && near "$fw" "$rw" "$sx"; then
+        cx=$((x + lw)); cw=$rw
+    else
+        return 1
+    fi
+
+    # Which row: the whole height (a half), the top quarter or the bottom one.
+    if near "$fy" "$y" "$sy" && near "$fh" "$h" "$sy"; then row=half
+    elif near "$fy" "$y" "$sy" && near "$fh" "$qh" "$sy"; then row=top
+    elif near "$fy" "$((y + qh))" "$sy" && near "$fh" "$bh" "$sy"; then row=bottom
+    else return 1; fi
+
+    case "$row $dir" in
+        "half up")   apply "con_id=$con" "$cw" "$qh" "$cx" "$y" ;;
+        "half down") apply "con_id=$con" "$cw" "$bh" "$cx" "$((y + qh))" ;;
+        "bottom up"|"top down") apply "con_id=$con" "$cw" "$h" "$cx" "$y" ;;
+    esac
+    return 0
 }
 
 # $1 up|down: one rung up or down full -> tall -> square -> box, centred

@@ -61,7 +61,7 @@ font and the cursor theme, and installs the programs the keybinds assume
 ## Floating desktop
 
 Every window opens **floating**, with a real draggable title bar, as a tall
-rectangle: 45% of the screen wide × 98% of its height, centred vertically. Two
+rectangle: 45% of the screen wide × the full height. Two
 stand side by side. Click-to-focus, not
 focus-follows-mouse.
 
@@ -82,8 +82,8 @@ The rest is tie-breaking you rarely notice:
   are any, so free screen is used before something gets buried.
 - **A full screen**, where every spot hides more than a quarter, draws among the
   least-hiding spots instead of giving up and stacking.
-- **No window opens flush against an edge** — every spot keeps 16px from the
-  borders of the usable workspace, the bar included.
+- **The edges are free to use** — the outer spots sit flush against the borders
+  of the usable workspace, with no gap.
 
 `$mod+Shift+h/j/k/l` is **layout-aware** — i3 cannot be, so
 [`scripts/float.sh`](./scripts/float.sh) decides per keypress:
@@ -95,9 +95,14 @@ The rest is tie-breaking you rarely notice:
 | `$mod+Shift+j` | one step smaller on the same ladder, centred vertically, left edge kept; stops at box | move it down |
 
 The ladder's steps: **full** (the whole screen below the bar — still a floating
-window, not fullscreen), **tall** (45% × 98%), **square** (side 60% of the short
+window, not fullscreen), **tall** (45% × 100%), **square** (side 60% of the short
 edge), **box** (16:9, 40% of the screen wide). A window in none of these
 shapes goes to tall on `k` and to square on `j`.
+
+A window on the left or right **half** skips the ladder: `k` moves it to that
+half's top quarter, `j` to its bottom quarter (right half + `j` = bottom-right
+corner). From a quarter, the other key takes it back to the half; the same key
+leaves it where it is.
 
 The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they nudge
 it a few pixels. `$mod+Shift+space` tiles the focused window, and `Super+Down`
@@ -161,13 +166,12 @@ Eight knobs, all optional, exported before i3 starts:
 
 ```bash
 I3RC_STD_W_PCT=45     # standard window width, % of the usable workspace
-I3RC_STD_H_PCT=98     # ...and its height
+I3RC_STD_H_PCT=100    # ...and its height
 I3RC_VMAX_W_PCT=100   # width of the full shape (top of the $mod+Shift+j/k ladder), % of the same
 I3RC_VMAX_H_PCT=100   # ...and its height
 I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
 I3RC_PLACE_ROWS=1     # ...and down it; 1 = vertically centred
 I3RC_MAX_COVER_PCT=25 # how much of the window you came from a new one may hide
-I3RC_EDGE_GAP_PX=16   # room a new window keeps from the screen edges; 0 = flush
 ```
 
 ### Tiling mode
