@@ -22,9 +22,14 @@ STD_W_PCT=${I3RC_STD_W_PCT:-45}
 STD_H_PCT=${I3RC_STD_H_PCT:-100}
 
 # The ladder, `move up` one rung bigger, `move down` one smaller, stopping at
-# the ends: full -> tall (STD) -> square. The square's side in percent of the
-# short edge.
-SQUARE_PCT=${I3RC_SQUARE_PCT:-60}
+# the ends: full -> half -> tall (STD) -> square. The square's side in pixels,
+# cut down to the short edge on a screen smaller than that.
+SQUARE_PX=${I3RC_SQUARE_PX:-600}
+
+# The half rung: half the screen's width, full height. Only the size: the
+# window keeps its left edge, like every rung.
+HALF_W_PCT=${I3RC_HALF_W_PCT:-50}
+HALF_H_PCT=${I3RC_HALF_H_PCT:-100}
 
 # The full shape, the top rung: percent of the usable workspace, centred. 100 is the whole screen below the bar — still a floating
 # window, not i3's fullscreen, so the bar stays in view.
@@ -221,28 +226,15 @@ cmd_move() {
     [ -n "${h:-}" ] || return 0
     case $state in
         user_on|auto_on)
-            local con before after
+            local con
             read -r con _ x y w h _ < <(focused_frame) || return 0
             [ -n "${h:-}" ] || return 0
-            before=$(frame_of "$con")
             if [ "$dir" = down ] || [ "$dir" = up ]; then
-                quarter "$dir" || set_shape "$dir"
+                set_shape "$dir"
             else
                 slide "$dir"
             fi
-            unstack "$con" "$dir" "$x" "$y" "$w" "$h"
-            # h/l on a window nudged off the edge stop: the slide puts it back
-            # on the window below and the nudge pushes it out again, so it never
-            # moves. Take the next step instead, that side's half of the screen.
-            after=$(frame_of "$con")
-            if [ "$after" = "$before" ]; then
-                case $dir in
-                    left)  apply "con_id=$con" "$((w / 2))" "$h" "$x" "$y" ;;
-                    right) apply "con_id=$con" "$((w - w / 2))" "$h" "$((x + w / 2))" "$y" ;;
-                    *) return 0 ;;
-                esac
-                unstack "$con" "$dir" "$x" "$y" "$w" "$h"
-            fi ;;
+            unstack "$con" "$dir" "$x" "$y" "$w" "$h" ;;
         *) i3-msg "move $dir" >/dev/null ;;
     esac
 }
@@ -258,33 +250,28 @@ clamp() {
     printf '%d\n' "$p"
 }
 
-# $1 left|right: one stop that way, left edge -> centre -> right edge, at the
-# window's own size; at the edge already, that half of the screen. 2px slack.
+# $1 left|right: one stop that way, at the window's own size. Five stops:
+# left edge, halfway to the centre, centre, halfway to the right edge, right
+# edge. At an edge it stays put. 2px slack.
 slide() {
-    local dir=$1 con x y w h fx fy fw fh to p
+    local dir=$1 con x y w h fx fy fw fh to p lo hi i
     read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
-    local -a stops=("$(clamp "$x" "$fw" "$x" "$w")"
-                    "$(clamp "$((x + (w - fw) / 2))" "$fw" "$x" "$w")"
-                    "$(clamp "$((x + w))" "$fw" "$x" "$w")")
-    # Past an edge stop counts as on it.
-    [ "$fx" -lt "${stops[0]}" ] && fx=${stops[0]}
-    [ "$fx" -gt "${stops[2]}" ] && fx=${stops[2]}
+    lo=$(clamp "$x" "$fw" "$x" "$w")
+    hi=$(clamp "$((x + w))" "$fw" "$x" "$w")
+    local -a stops=()
+    for ((i = 0; i < 5; i++)); do stops+=("$((lo + i * (hi - lo) / 4))"); done
+    to=$fx
     if [ "$dir" = left ]; then
-        if [ "$fx" -le $((stops[0] + 2)) ]; then
-            apply "con_id=$con" "$((w / 2))" "$h" "$x" "$y"; return
-        fi
-        to=${stops[0]}
         for p in "${stops[@]}"; do [ "$p" -lt $((fx - 2)) ] && to=$p; done
+        [ "$fx" -le $((lo + 2)) ] && to=$lo
     else
-        if [ "$fx" -ge $((stops[2] - 2)) ]; then
-            apply "con_id=$con" "$((w - w / 2))" "$h" "$((x + w / 2))" "$y"; return
-        fi
-        to=${stops[2]}
-        for p in "${stops[2]}" "${stops[1]}" "${stops[0]}"; do
-            [ "$p" -gt $((fx + 2)) ] && to=$p
+        for ((i = 4; i >= 0; i--)); do
+            [ "${stops[i]}" -gt $((fx + 2)) ] && to=${stops[i]}
         done
+        [ "$fx" -ge $((hi - 2)) ] && to=$hi
     fi
+    [ "$to" = "$fx" ] && return 0
     i3-msg "[con_id=$con] move position $to px $fy px" >/dev/null
 }
 
@@ -346,48 +333,9 @@ stacked_on() {
     return 1
 }
 
-# "<a> <b> <slack>" in: true if a and b are at most slack apart.
-near() {
-    local d=$(($1 - $2))
-    [ "${d#-}" -le "$3" ]
-}
-
-# $1 up|down: the left or right half of the screen splits in two, k to its top
-# quarter, j to its bottom one. A quarter goes back to its half with the other
-# key, and stays put with the same one. Anything else returns 1, so the ladder
-# below takes the key. 3% slack, like the ladder: terminals snap to cells.
-quarter() {
-    local dir=$1 con x y w h fx fy fw fh lw rw qh bh sx sy cx cw row
-    read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 1
-    [ -n "${fh:-}" ] || return 1
-    lw=$((w / 2)); rw=$((w - w / 2)); qh=$((h / 2)); bh=$((h - h / 2))
-    sx=$((w * 3 / 100)); sy=$((h * 3 / 100))
-
-    # Which column: the frame's left edge and width match the left or right half.
-    if near "$fx" "$x" "$sx" && near "$fw" "$lw" "$sx"; then
-        cx=$x; cw=$lw
-    elif near "$fx" "$((x + lw))" "$sx" && near "$fw" "$rw" "$sx"; then
-        cx=$((x + lw)); cw=$rw
-    else
-        return 1
-    fi
-
-    # Which row: the whole height (a half), the top quarter or the bottom one.
-    if near "$fy" "$y" "$sy" && near "$fh" "$h" "$sy"; then row=half
-    elif near "$fy" "$y" "$sy" && near "$fh" "$qh" "$sy"; then row=top
-    elif near "$fy" "$((y + qh))" "$sy" && near "$fh" "$bh" "$sy"; then row=bottom
-    else return 1; fi
-
-    case "$row $dir" in
-        "half up")   apply "con_id=$con" "$cw" "$qh" "$cx" "$y" ;;
-        "half down") apply "con_id=$con" "$cw" "$bh" "$cx" "$((y + qh))" ;;
-        "bottom up"|"top down") apply "con_id=$con" "$cw" "$h" "$cx" "$y" ;;
-    esac
-    return 0
-}
-
-# $1 up|down: one rung up or down full -> tall -> square, centred
-# vertically, left edge kept. Stops at the ends; any other shape gets tall (up) or square (down).
+# $1 up|down: one rung up or down full -> half -> tall -> square, centred
+# vertically, left edge kept. Stops at the ends; any other shape gets tall (up)
+# or square (down).
 set_shape() {
     local dir=$1 con x y w h fx fy fw fh side i dw dh tw th next cur=-1
     local s_con s_i s_w s_h state
@@ -395,13 +343,15 @@ set_shape() {
     state="$(i3rc_runtime_dir)/i3rc-ladder"
     read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
-    side=$(( (w < h ? w : h) * SQUARE_PCT / 100 ))
-    # Rungs, biggest first: 0 full, 1 tall, 2 square.
-    sw=("$((w * VMAX_W_PCT / 100))" "$((w * STD_W_PCT / 100))" "$side")
-    sh=("$((h * VMAX_H_PCT / 100))" "$((h * STD_H_PCT / 100))" "$side")
+    side=$(( w < h ? w : h )); [ "$SQUARE_PX" -lt "$side" ] && side=$SQUARE_PX
+    # Rungs, biggest first: 0 full, 1 half, 2 tall, 3 square.
+    sw=("$((w * VMAX_W_PCT / 100))" "$((w * HALF_W_PCT / 100))"
+        "$((w * STD_W_PCT / 100))" "$side")
+    sh=("$((h * VMAX_H_PCT / 100))" "$((h * HALF_H_PCT / 100))"
+        "$((h * STD_H_PCT / 100))" "$side")
 
     # 3% slack: a terminal snaps its size to whole cells, so it rarely lands exact.
-    for ((i = 0; i < 3; i++)); do
+    for ((i = 0; i < 4; i++)); do
         dw=$((fw - sw[i])); dh=$((fh - sh[i]))
         if [ "${dw#-}" -le $((w * 3 / 100)) ] && [ "${dh#-}" -le $((h * 3 / 100)) ]; then
             cur=$i; break
@@ -415,11 +365,11 @@ set_shape() {
     fi
 
     if [ "$cur" -lt 0 ]; then
-        if [ "$dir" = up ]; then next=1; else next=2; fi
+        if [ "$dir" = up ]; then next=2; else next=3; fi
     elif [ "$dir" = up ]; then
         next=$((cur > 0 ? cur - 1 : 0))
     else
-        next=$((cur < 2 ? cur + 1 : 2))
+        next=$((cur < 3 ? cur + 1 : 3))
     fi
 
     tw=${sw[next]}; th=${sh[next]}
@@ -428,6 +378,13 @@ set_shape() {
     # if the new width runs past an edge) and centre it vertically. Read the
     # size it really took, so a refused shrink lands right.
     read -r _ _ tw th < <(frame_of "$con")
+    # The square must stay square: if the app refused the side (a min width,
+    # Firefox's 500px), both sides grow to the bigger one.
+    if [ "$next" = 3 ] && [ "$tw" != "$th" ]; then
+        side=$((tw > th ? tw : th))
+        i3-msg "[con_id=$con] resize set $side px $side px" >/dev/null
+        read -r _ _ tw th < <(frame_of "$con")
+    fi
     apply "con_id=$con" "$tw" "$th" \
           "$(clamp "$fx" "$tw" "$x" "$w")" \
           "$(clamp "$((y + (h - th) / 2))" "$th" "$y" "$h")"

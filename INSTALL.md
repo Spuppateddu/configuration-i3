@@ -337,9 +337,9 @@ If the top bar doesn't appear:
 | `$mod+Shift+m` | Pick a folder → shuffle play |
 | `$mod+f` | Fullscreen |
 | `$mod+h/j/k/l` | Focus left/down/up/right |
-| `$mod+Shift+h/l` | Floating: one step left/right, left edge ⇄ centre ⇄ right edge, same size; once more at an edge, that half — tiled: move window |
-| `$mod+Shift+k` | Floating: one step bigger, full ← tall ← square (full is below the bar, not fullscreen) — tiled: move window |
-| `$mod+Shift+j` | Floating: one step smaller, full → tall → square — tiled: move window |
+| `$mod+Shift+h/l` | Floating: one step left/right over five stops (left edge, halfway, centre, halfway, right edge), same size; stops at the edge — tiled: move window |
+| `$mod+Shift+k` | Floating: one step bigger, full ← half ← tall ← square (full is below the bar, not fullscreen) — tiled: move window |
+| `$mod+Shift+j` | Floating: one step smaller, full → half → tall → square (600×600) — tiled: move window |
 | `$mod+Shift+←↓↑→` | Move window, never snaps (nudges a floating one) |
 | `$mod+Shift+space` | Float ↔ tile the focused window |
 | `$mod+Control+space` | Float ↔ tile the **whole desktop**, open windows included (reloads i3) |
