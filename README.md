@@ -85,6 +85,12 @@ The rest is tie-breaking you rarely notice:
 - **The edges are free to use** — the outer spots sit flush against the borders
   of the usable workspace, with no gap.
 
+**No window goes over the bar.** `float.sh guard` watches every window move
+(from X, because i3 sends no event when an app moves or resizes itself, or when
+you drag it). When things stop moving for 0.3s, any floating window whose top is
+above the bar is pulled back down to it, and one taller than the screen is
+shrunk to fit. Fullscreen windows and flameshot are left alone.
+
 `$mod+Shift+h/j/k/l` is **layout-aware** — i3 cannot be, so
 [`scripts/float.sh`](./scripts/float.sh) decides per keypress:
 

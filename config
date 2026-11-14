@@ -30,6 +30,9 @@ exec_always --no-startup-id ~/.i3rc/scripts/launch_eww.sh
 # Floating desktop: sizes and centres each new window from the live workspace
 # rect, cascading it when the centre is taken. After the bar, which shrinks it.
 exec_always --no-startup-id ~/.i3rc/scripts/float.sh watch
+# Keeps every floating window below the bar, whatever moved it: an app that
+# resizes itself after it opened (Firefox), a drag, a DPI rescale.
+exec_always --no-startup-id ~/.i3rc/scripts/float.sh guard
 
 # No music daemon here: mpd.socket (systemd, user) starts mpd on the first
 # connect, so $mod+m / $mod+Shift+m are what bring it up. Nor mpDris2, the bridge

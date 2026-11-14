@@ -2,7 +2,8 @@
 # The floating desktop: `watch` sizes every new window and drops it on a random
 # free spot that keeps the window you came from readable, `move <dir>` snaps a
 # floating one, `place <con_id>` places one on demand (desktop_mode.sh),
-# `send <ws>` moves the focused one to a workspace, refitted to its monitor.
+# `send <ws>` moves the focused one to a workspace, refitted to its monitor,
+# `guard` keeps every floating window below the bar, `fit` does it once.
 
 # Every number comes from the live workspace rect, which i3 already shrank by the
 # eww bar's strut — so no resolution, bar height or output name is hardcoded.
@@ -12,6 +13,11 @@ set -u
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/runtime_lib.sh" || exit 1
 
 PIDFILE="$(i3rc_runtime_dir)/i3rc-float.pid"
+GUARD_PIDFILE="$(i3rc_runtime_dir)/i3rc-float-guard.pid"
+
+# How long the windows must hold still before the guard checks them, in
+# seconds. A drag sends a stream of moves; the check waits for it to stop.
+GUARD_QUIET=${I3RC_GUARD_QUIET:-0.3}
 
 # Standard window: percent of the usable workspace — a tall rectangle, 45% wide
 # so two still sit side by side, and the full height of the usable workspace,
@@ -373,6 +379,73 @@ cmd_send() {
     fi
 }
 
+# "<con> <x> <y> <w> <h> <ws-x> <ws-y> <ws-w> <ws-h> <class>" per floating
+# window whose top is above its workspace (under the bar) or that is taller
+# than the workspace. Fullscreen windows and the scratchpad are left out.
+over_bar() {
+    i3-msg -t get_tree | jq -r "$JQ_DESC"'
+        desc | select(.type == "workspace")
+             | select(.name | startswith("__") | not)
+             | . as $ws
+             | .floating_nodes[]
+             | (.nodes[0] // empty) as $c
+             | select(($c.fullscreen_mode // 0) == 0)
+             | select(.rect.y < $ws.rect.y or .rect.height > $ws.rect.height)
+             | "\($c.id) \(.rect.x) \(.rect.y) \(.rect.width) \(.rect.height) \($ws.rect.x) \($ws.rect.y) \($ws.rect.width) \($ws.rect.height) \($c.window_properties.class // "-")"'
+}
+
+# Pulls every floating window that pokes above its workspace back down to the
+# bar's lower edge, and shrinks one taller than the workspace to fit it. The
+# window keeps its x and width.
+cmd_fit() {
+    local con x y w h wy wh class
+    while read -r con x y w h _ wy _ wh class; do
+        [ -n "${class:-}" ] || continue
+        [[ $class =~ $SKIP_CLASS_RE ]] && continue
+        if [ "$h" -gt "$wh" ]; then
+            i3-msg "[con_id=$con] resize set $w px $wh px" >/dev/null
+            # A min size can refuse the shrink: place what it really took.
+            read -r _ _ w h < <(frame_of "$con") || continue
+        fi
+        i3-msg "[con_id=$con] move position $x px $(clamp "$y" "$h" "$wy" "$wh") px" >/dev/null
+    done < <(over_bar)
+}
+
+# The daemon behind `guard`. i3 sends no event when a window moves or resizes
+# itself (Firefox does, after it opened) or is dragged, but X does: every i3
+# frame is a child of the root window, so each change is a ConfigureNotify on
+# the root. Once they stop for GUARD_QUIET seconds, cmd_fit runs.
+cmd_guard() {
+    local old line sub_pid
+    if [ -r "$GUARD_PIDFILE" ]; then
+        read -r old <"$GUARD_PIDFILE" || old=""
+        case $old in
+            ''|*[!0-9]*|"$$") ;;
+            *) is_self "$old" && kill "$old" 2>/dev/null ;;
+        esac
+    fi
+    printf '%s\n' "$$" >"$GUARD_PIDFILE"
+
+    # substructure = the root's children; stdbuf, or xev holds its lines back.
+    exec 3< <(stdbuf -oL xev -1 -root -event substructure 2>/dev/null)
+    sub_pid=$!
+    trap 'kill "$sub_pid" 2>/dev/null; release_pidfile "$GUARD_PIDFILE"' EXIT
+    trap 'exit 0' TERM INT
+
+    cmd_fit
+    while read -r line <&3; do
+        case $line in ConfigureNotify*) ;; *) continue ;; esac
+        # Swallow the rest of the burst. A timeout (>128) means quiet; any
+        # other failure means xev is gone, and so is X.
+        while :; do
+            read -r -t "$GUARD_QUIET" line <&3 && continue
+            [ $? -gt 128 ] || return 0
+            break
+        done
+        cmd_fit
+    done
+}
+
 # Standard size for con $1 if it is a normal window, centred as-is if it is a
 # dialog. A tiled con is left alone: `resize set` there moves the split instead.
 place_con() {
@@ -422,11 +495,12 @@ is_self() {
     [ "${I3RC_SCRIPT##*/}" = "$me" ]
 }
 
+# $1 the pidfile, PIDFILE by default.
 release_pidfile() {
-    local cur
-    [ -r "$PIDFILE" ] || return 0
-    read -r cur <"$PIDFILE" || return 0
-    [ "$cur" = "$$" ] && rm -f "$PIDFILE"
+    local cur file=${1:-$PIDFILE}
+    [ -r "$file" ] || return 0
+    read -r cur <"$file" || return 0
+    [ "$cur" = "$$" ] && rm -f "$file"
     return 0
 }
 
@@ -460,5 +534,7 @@ case "${1:-}" in
     move)  cmd_move "${2:?usage: float.sh move <left|down|up|right>}" ;;
     place) place_con "${2:?usage: float.sh place <con_id>}" ;;
     send)  cmd_send "${2:?usage: float.sh send <workspace>}" ;;
-    *)     printf 'usage: %s watch | move <left|down|up|right> | place <con_id> | send <workspace>\n' "${0##*/}" >&2; exit 2 ;;
+    guard) cmd_guard ;;
+    fit)   cmd_fit ;;
+    *)     printf 'usage: %s watch | guard | fit | move <left|down|up|right> | place <con_id> | send <workspace>\n' "${0##*/}" >&2; exit 2 ;;
 esac

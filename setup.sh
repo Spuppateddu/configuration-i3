@@ -96,6 +96,8 @@ PACKAGES=(
     jq
     # scripts/warp_pointer.sh moves the pointer to the window focused by keyboard.
     xdotool
+    # scripts/float.sh guard reads window moves from xev.
+    x11-utils
     # scripts/window_mode.py draws the preview box of the $mod+r mode.
     python3-gi python3-gi-cairo gir1.2-gtk-3.0
     picom
