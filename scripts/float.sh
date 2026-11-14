@@ -22,9 +22,10 @@ STD_W_PCT=${I3RC_STD_W_PCT:-45}
 STD_H_PCT=${I3RC_STD_H_PCT:-100}
 
 # The ladder, `move up` one rung bigger, `move down` one smaller, stopping at
-# the ends: full -> half -> tall (STD) -> square. The square's side in pixels,
-# cut down to the short edge on a screen smaller than that.
-SQUARE_PX=${I3RC_SQUARE_PX:-600}
+# the ends: full -> half -> tall (STD) -> quarter. The quarter is one of the
+# four parts of the screen cut in two both ways: 50% x 50%.
+QUARTER_W_PCT=${I3RC_QUARTER_W_PCT:-50}
+QUARTER_H_PCT=${I3RC_QUARTER_H_PCT:-50}
 
 # The half rung: half the screen's width, full height. Only the size: the
 # window keeps its left edge, like every rung.
@@ -333,22 +334,21 @@ stacked_on() {
     return 1
 }
 
-# $1 up|down: one rung up or down full -> half -> tall -> square, centred
+# $1 up|down: one rung up or down full -> half -> tall -> quarter, centred
 # vertically, left edge kept. Stops at the ends; any other shape gets tall (up)
-# or square (down).
+# or quarter (down).
 set_shape() {
-    local dir=$1 con x y w h fx fy fw fh side i dw dh tw th next cur=-1
+    local dir=$1 con x y w h fx fy fw fh i dw dh tw th next cur=-1
     local s_con s_i s_w s_h state
     local -a sw sh
     state="$(i3rc_runtime_dir)/i3rc-ladder"
     read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
-    side=$(( w < h ? w : h )); [ "$SQUARE_PX" -lt "$side" ] && side=$SQUARE_PX
-    # Rungs, biggest first: 0 full, 1 half, 2 tall, 3 square.
+    # Rungs, biggest first: 0 full, 1 half, 2 tall, 3 quarter.
     sw=("$((w * VMAX_W_PCT / 100))" "$((w * HALF_W_PCT / 100))"
-        "$((w * STD_W_PCT / 100))" "$side")
+        "$((w * STD_W_PCT / 100))" "$((w * QUARTER_W_PCT / 100))")
     sh=("$((h * VMAX_H_PCT / 100))" "$((h * HALF_H_PCT / 100))"
-        "$((h * STD_H_PCT / 100))" "$side")
+        "$((h * STD_H_PCT / 100))" "$((h * QUARTER_H_PCT / 100))")
 
     # 3% slack: a terminal snaps its size to whole cells, so it rarely lands exact.
     for ((i = 0; i < 4; i++)); do
@@ -378,13 +378,6 @@ set_shape() {
     # if the new width runs past an edge) and centre it vertically. Read the
     # size it really took, so a refused shrink lands right.
     read -r _ _ tw th < <(frame_of "$con")
-    # The square must stay square: if the app refused the side (a min width,
-    # Firefox's 500px), both sides grow to the bigger one.
-    if [ "$next" = 3 ] && [ "$tw" != "$th" ]; then
-        side=$((tw > th ? tw : th))
-        i3-msg "[con_id=$con] resize set $side px $side px" >/dev/null
-        read -r _ _ tw th < <(frame_of "$con")
-    fi
     apply "con_id=$con" "$tw" "$th" \
           "$(clamp "$fx" "$tw" "$x" "$w")" \
           "$(clamp "$((y + (h - th) / 2))" "$th" "$y" "$h")"
