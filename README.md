@@ -314,6 +314,18 @@ first line of `eww/bar-text.local` (git-ignored). No file, or an empty one, and
 nothing shows. The bar re-reads it every 5 seconds, so no restart is needed.
 Write it from best-linux-environment too: `BLE_BAR_TEXT=...` in `settings.local`.
 
+Before that text sits a window counter, `1/2`: how many windows on the shown
+workspace you can click right now, out of all the windows on it.
+[`eww/scripts/windows.py`](./eww/scripts/windows.py) works it out. A window
+counts as visible if a square of at least 30×30 px of it
+(`I3RC_VISIBLE_MIN_PX`) is not covered by a window above it, so a sliver or a
+bit of border does not count. Only the shown tab of a tabbed or stacked
+container counts, and a fullscreen window hides the rest. i3 sends no event
+when a floating window is moved or resized, so the script re-reads the tree
+every second as well as on each window event, through i3's socket (no process
+per read, under 1 ms). The first number takes `BLE_I3_UNFOCUSED_COLOR`, the
+second `BLE_I3_BORDER_COLOR`, through `focus.local.scss`.
+
 Plugging a monitor in or out, or making another one primary, re-opens the bars by
 itself: `eww/scripts/screen.sh` is already subscribed to i3's `output` events, and
 re-runs `launch_eww.sh` (detached — the relaunch kills the daemon and the listener

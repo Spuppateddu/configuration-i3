@@ -54,6 +54,16 @@ window { background: transparent; }
   margin-right: 4px;
 }
 
+// Window counters (scripts/windows.py): "visible/all", before the free text.
+// focus.local.scss colours the two numbers; these are the fallbacks.
+.wincount {
+  color: $text;
+  margin-left: 6px;
+  .vis { color: $yellow; }
+  .sep { color: $subtext; }
+  .all { color: $blue; }
+}
+
 // Free text after the workspaces (bar-text.local), plain like the status text.
 .bartext {
   color: $text;
@@ -139,7 +149,7 @@ window { background: transparent; }
 }
 .volbar highlight {
   border-radius: 3px;
-  background: $green;
+  background-color: $green; // focus.local.scss sets BLE_I3_BORDER_COLOR here
 }
 .volbar slider {
   min-width: 10px;
@@ -148,8 +158,19 @@ window { background: transparent; }
   border-radius: 5px;
   background: $text;
 }
-.volbar.boost highlight { background: $peach; }
-.volbar.muted highlight { background: $red; }
+// Past 100% and muted keep the fill colour and add diagonal stripes on top, so
+// a new focused colour needs no change here. Boost: dark stripes. Muted: stripes
+// in the trough colour, so the fill looks faded.
+.volbar.boost highlight {
+  background-image: repeating-linear-gradient(-45deg,
+    transparent 0px, transparent 2px,
+    rgba(0, 0, 0, 0.4) 2px, rgba(0, 0, 0, 0.4) 4px);
+}
+.volbar.muted highlight {
+  background-image: repeating-linear-gradient(-45deg,
+    transparent 0px, transparent 2px,
+    $surface1 2px, $surface1 4px);
+}
 
 .blue     { color: $blue; }
 .green    { color: $green; }

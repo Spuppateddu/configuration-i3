@@ -47,12 +47,6 @@ PLACE_ROWS=${I3RC_PLACE_ROWS:-1}
 # spots that hide nothing of it at all.
 MAX_COVER_PCT=${I3RC_MAX_COVER_PCT:-25}
 
-# $mod+Shift+h/j/k/l: when a window lands exactly on top of another one (same
-# spot and size, NUDGE_SLACK_PX of slack for terminals that snap to cells), it
-# is nudged NUDGE_PX away, so the one below still peeks out.
-NUDGE_PX=${I3RC_NUDGE_PX:-48}
-NUDGE_SLACK_PX=${I3RC_NUDGE_SLACK_PX:-4}
-
 # Classes the daemon never resizes: their window *is* the screen, so a
 # standard-size frame breaks them outright.
 SKIP_CLASS_RE=${I3RC_FLOAT_SKIP:-'^(flameshot|i3lock)$'}
@@ -227,15 +221,11 @@ cmd_move() {
     [ -n "${h:-}" ] || return 0
     case $state in
         user_on|auto_on)
-            local con
-            read -r con _ x y w h _ < <(focused_frame) || return 0
-            [ -n "${h:-}" ] || return 0
             if [ "$dir" = down ] || [ "$dir" = up ]; then
                 set_shape "$dir"
             else
                 slide "$dir"
-            fi
-            unstack "$con" "$dir" "$x" "$y" "$w" "$h" ;;
+            fi ;;
         *) i3-msg "move $dir" >/dev/null ;;
     esac
 }
@@ -274,64 +264,6 @@ slide() {
     fi
     [ "$to" = "$fx" ] && return 0
     i3-msg "[con_id=$con] move position $to px $fy px" >/dev/null
-}
-
-# "<con> <dir> <ws-x> <ws-y> <ws-w> <ws-h>" in: if con's frame sits exactly on
-# another floating window, nudge it NUDGE_PX the way the key points. No room that
-# way (an edge, or a full-height window going up or down), then the opposite way,
-# then the two sideways. Repeated, so a pile of three still fans out.
-unstack() {
-    local con=$1 dir=$2 x=$3 y=$4 w=$5 h=$6 fx fy fw fh a b c d tries d2 nx ny
-    local -a px=() py=() pw=() ph=() order
-    while read -r a b c d _; do
-        [ -n "${d:-}" ] || continue
-        px+=("$a"); py+=("$b"); pw+=("$c"); ph+=("$d")
-    done < <(peers_of "$con")
-    [ "${#px[@]}" -gt 0 ] || return 0
-    case $dir in
-        left)  order=(left right up down) ;;
-        right) order=(right left up down) ;;
-        up)    order=(up down right left) ;;
-        *)     order=(down up right left) ;;
-    esac
-    for ((tries = 0; tries < 6; tries++)); do
-        read -r fx fy fw fh < <(frame_of "$con")
-        [ -n "${fh:-}" ] || return 0
-        stacked_on "$fx" "$fy" "$fw" "$fh" || return 0
-        for d2 in "${order[@]}"; do
-            nx=$fx; ny=$fy
-            case $d2 in
-                left)  nx=$(clamp "$((fx - NUDGE_PX))" "$fw" "$x" "$w") ;;
-                right) nx=$(clamp "$((fx + NUDGE_PX))" "$fw" "$x" "$w") ;;
-                up)    ny=$(clamp "$((fy - NUDGE_PX))" "$fh" "$y" "$h") ;;
-                down)  ny=$(clamp "$((fy + NUDGE_PX))" "$fh" "$y" "$h") ;;
-            esac
-            # No room that way: the clamp left it in place. Try the next way.
-            case $d2 in
-                left)  [ "$nx" -lt "$fx" ] || continue ;;
-                right) [ "$nx" -gt "$fx" ] || continue ;;
-                up)    [ "$ny" -lt "$fy" ] || continue ;;
-                down)  [ "$ny" -gt "$fy" ] || continue ;;
-            esac
-            i3-msg "[con_id=$con] move position $nx px $ny px" >/dev/null
-            # Keep going the same way if it lands on a third window.
-            order=("$d2" "${order[@]/$d2/}")
-            continue 2
-        done
-        return 0
-    done
-}
-
-# "<x> <y> <w> <h>" in: true if one of the peers unstack() read has that rect,
-# give or take NUDGE_SLACK_PX on every edge.
-stacked_on() {
-    local i s=$NUDGE_SLACK_PX dx dy dw dh
-    for i in "${!px[@]}"; do
-        dx=$(($1 - px[i])); dy=$(($2 - py[i])); dw=$(($3 - pw[i])); dh=$(($4 - ph[i]))
-        [ "${dx#-}" -le "$s" ] && [ "${dy#-}" -le "$s" ] &&
-            [ "${dw#-}" -le "$s" ] && [ "${dh#-}" -le "$s" ] && return 0
-    done
-    return 1
 }
 
 # $1 up|down: one rung up or down full -> half -> tall -> quarter, centred
@@ -420,7 +352,8 @@ settle() {
     done
 }
 
-# $mod+Shift+<n>: send the focused window to workspace $1 and follow it. A
+# $mod+Shift+<n>: send the focused window to workspace $1. You stay where you
+# are: focus goes to the next window here, and the pointer does not move. A
 # floating window keeps its share of the screen and its spot: i3 keeps its pixel
 # size across monitors, and a DPI-aware app rescales itself on top. So once it
 # has settled, the frame is always set again from the old share, never trusted.
@@ -428,7 +361,6 @@ cmd_send() {
     local ws=$1 id floating ox oy ow oh fx fy fw fh nx ny nw nh
     read -r id floating ox oy ow oh fx fy fw fh < <(focused_frame) || id=""
     i3-msg "move container to workspace number $ws" >/dev/null
-    i3-msg "workspace number $ws" >/dev/null
     if [ -n "${fh:-}" ] && [ "$ow" -gt 0 ] && [ "$oh" -gt 0 ]; then
         case $floating in
             user_on|auto_on)
@@ -439,7 +371,6 @@ cmd_send() {
                           "$((nx + (fx - ox) * nw / ow))" "$((ny + (fy - oy) * nh / oh))" ;;
         esac
     fi
-    "$(dirname -- "${BASH_SOURCE[0]}")/warp_pointer.sh"
 }
 
 # Standard size for con $1 if it is a normal window, centred as-is if it is a

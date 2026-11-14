@@ -17,6 +17,9 @@
 ;; (best-linux-environment's BLE_BAR_TEXT). No file: empty, and hidden.
 (defpoll bartext :interval "5s" :initial ""
   `head -n1 "$HOME/.i3rc/eww/bar-text.local" 2>/dev/null || true`)
+;; Window counters per output (scripts/windows.py): `vis` windows on the shown
+;; workspace you can click, at least 30x30 px of them not covered, out of `all`.
+(deflisten wincount :initial "{}" "$HOME/.i3rc/eww/scripts/windows.py")
 ;; Layout density *and* the bar's output name (scripts/screen.sh). `scr.mon`
 ;; re-emits on every output event, so it never points at a dead monitor.
 ;; The initial value mirrors screen.sh's `wide` tier, so the first frame drawn
@@ -214,6 +217,14 @@
     ;; to_entries keeps workspaces.sh's group_by order, so cards don't reshuffle.
     (detachedcards
       :wssl {jq(wsmap, "if ${others} then [to_entries[] | select(.key != \"${mon}\") | .value] else [] end")})
+    ;; "1/2": visible in the unfocused colour, all in the focused one — both
+    ;; from focus.local.scss, written by best-linux-environment.
+    (box :class "wincount" :space-evenly false
+         :visible {(wincount[mon]?.all ?: 0) > 0}
+         :tooltip "Visible (clickable) windows / all windows on this workspace"
+      (label :class "vis" :text "${wincount[mon]?.vis ?: 0}")
+      (label :class "sep" :text "/")
+      (label :class "all" :text "${wincount[mon]?.all ?: 0}"))
     (label :class "bartext" :visible {bartext != ""} :limit-width 60 :text bartext)
     ;; The one spacer sits HERE, left of the media island: media + status ride the
     ;; right edge as one block. After it instead, the title drifts to the middle.
