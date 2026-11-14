@@ -218,14 +218,22 @@
     (detachedcards
       :wssl {jq(wsmap, "if ${others} then [to_entries[] | select(.key != \"${mon}\") | .value] else [] end")})
     ;; "1/2": visible in the unfocused colour, all in the focused one — both
-    ;; from focus.local.scss, written by best-linux-environment.
-    (box :class "wincount" :space-evenly false
-         :visible {(wincount[mon]?.all ?: 0) > 0}
+    ;; from focus.local.scss, written by best-linux-environment. They sit on a
+    ;; chip in two parts: "1/" on a background that fits the unfocused colour,
+    ;; "2 text" on one that fits the focused one (light or dark, picked there),
+    ;; so any colour reads, even a yellow + black pair.
+    (box :class "barchip wincount" :space-evenly false :valign "center"
+         :visible {(wincount[mon]?.all ?: 0) > 0 || bartext != ""}
          :tooltip "Visible (clickable) windows / all windows on this workspace"
-      (label :class "vis" :text "${wincount[mon]?.vis ?: 0}")
-      (label :class "sep" :text "/")
-      (label :class "all" :text "${wincount[mon]?.all ?: 0}"))
-    (label :class "bartext" :visible {bartext != ""} :limit-width 60 :text bartext)
+      (box :class "chip second" :space-evenly false
+           :visible {(wincount[mon]?.all ?: 0) > 0}
+        (label :class "vis" :text "${wincount[mon]?.vis ?: 0}")
+        (label :class "sep" :text "/"))
+      (box :class {(wincount[mon]?.all ?: 0) > 0 ? "chip first joined" : "chip first"}
+           :space-evenly false :spacing 6
+        (label :class "all" :visible {(wincount[mon]?.all ?: 0) > 0}
+               :text "${wincount[mon]?.all ?: 0}")
+        (label :class "bartext" :visible {bartext != ""} :limit-width 60 :text bartext)))
     ;; The one spacer sits HERE, left of the media island: media + status ride the
     ;; right edge as one block. After it instead, the title drifts to the middle.
     (box :hexpand true)

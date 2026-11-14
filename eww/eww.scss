@@ -54,11 +54,25 @@ window { background: transparent; }
   margin-right: 4px;
 }
 
+// A rounded chip behind the window counter and the free text, so any text
+// colour reads on the bar. Two parts: `.second` holds "1/", `.first` holds
+// "2 text"; focus.local.scss gives each the background that fits its colour
+// (cream under dark ones, near-black under light ones). These are fallbacks.
+.barchip { margin-left: 6px; }
+.chip {
+  background: $mantle;
+  border-radius: 5px;
+  padding: 0 6px;
+  min-height: 16px;
+}
+// Side by side, the two parts read as one chip: no gap, no inner corners.
+.chip.second       { border-radius: 5px 0 0 5px; padding-right: 0; }
+.chip.first.joined { border-radius: 0 5px 5px 0; padding-left: 0; }
+
 // Window counters (scripts/windows.py): "visible/all", before the free text.
 // focus.local.scss colours the two numbers; these are the fallbacks.
 .wincount {
   color: $text;
-  margin-left: 6px;
   .vis { color: $yellow; }
   .sep { color: $subtext; }
   .all { color: $blue; }
@@ -67,7 +81,6 @@ window { background: transparent; }
 // Free text after the workspaces (bar-text.local), plain like the status text.
 .bartext {
   color: $text;
-  margin-left: 6px;
 }
 
 // workspaces
