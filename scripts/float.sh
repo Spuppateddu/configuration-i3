@@ -3,7 +3,8 @@
 # free spot that keeps the window you came from readable, `move <dir>` snaps a
 # floating one, `place <con_id>` places one on demand (desktop_mode.sh),
 # `send <ws>` moves the focused one to a workspace, refitted to its monitor,
-# `guard` keeps every floating window below the bar, `fit` does it once.
+# `guard` keeps every floating window inside its monitor (below the bar, no
+# edge outside the screen), `fit` does it once.
 
 # Every number comes from the live workspace rect, which i3 already shrank by the
 # eww bar's strut — so no resolution, bar height or output name is hardcoded.
@@ -358,8 +359,9 @@ settle() {
     done
 }
 
-# $mod+Shift+<n>: send the focused window to workspace $1. You stay where you
-# are: focus goes to the next window here, and the pointer does not move. A
+# $mod+Shift+<n>: send the focused window to workspace $1 and follow it: the
+# window keeps the focus, so you land on that workspace, on whichever monitor
+# shows it, with the pointer in the middle of the window. A
 # floating window keeps its share of the screen and its spot: i3 keeps its pixel
 # size across monitors, and a DPI-aware app rescales itself on top. So once it
 # has settled, the frame is always set again from the old share, never trusted.
@@ -377,12 +379,21 @@ cmd_send() {
                           "$((nx + (fx - ox) * nw / ow))" "$((ny + (fy - oy) * nh / oh))" ;;
         esac
     fi
+    # Focusing the window itself (not just its workspace) also moves to the
+    # monitor that workspace is on.
+    if [ -n "$id" ]; then
+        i3-msg "[con_id=$id] focus" >/dev/null
+    else
+        i3-msg "workspace number $ws" >/dev/null
+    fi
+    "$(dirname -- "${BASH_SOURCE[0]}")/warp_pointer.sh"
 }
 
 # "<con> <x> <y> <w> <h> <ws-x> <ws-y> <ws-w> <ws-h> <class>" per floating
-# window whose top is above its workspace (under the bar) or that is taller
-# than the workspace. Fullscreen windows and the scratchpad are left out.
-over_bar() {
+# window that pokes out of its workspace on any side — under the bar, or past
+# the left, right or bottom edge of its monitor — or is bigger than it.
+# Fullscreen windows and the scratchpad are left out.
+out_of_bounds() {
     i3-msg -t get_tree | jq -r "$JQ_DESC"'
         desc | select(.type == "workspace")
              | select(.name | startswith("__") | not)
@@ -390,25 +401,28 @@ over_bar() {
              | .floating_nodes[]
              | (.nodes[0] // empty) as $c
              | select(($c.fullscreen_mode // 0) == 0)
-             | select(.rect.y < $ws.rect.y or .rect.height > $ws.rect.height)
+             | select(.rect.x < $ws.rect.x or .rect.y < $ws.rect.y
+                      or .rect.x + .rect.width  > $ws.rect.x + $ws.rect.width
+                      or .rect.y + .rect.height > $ws.rect.y + $ws.rect.height)
              | "\($c.id) \(.rect.x) \(.rect.y) \(.rect.width) \(.rect.height) \($ws.rect.x) \($ws.rect.y) \($ws.rect.width) \($ws.rect.height) \($c.window_properties.class // "-")"'
 }
 
-# Pulls every floating window that pokes above its workspace back down to the
-# bar's lower edge, and shrinks one taller than the workspace to fit it. The
-# window keeps its x and width.
+# Pushes every floating window that pokes out of its monitor back in, flush
+# against the edge it crossed, and shrinks one bigger than the workspace to
+# fit it. A window dragged half onto the other monitor is i3's to hand over:
+# it moves it to that monitor's workspace, and then it is clamped there.
 cmd_fit() {
-    local con x y w h wy wh class
-    while read -r con x y w h _ wy _ wh class; do
+    local con x y w h wx wy ww wh class
+    while read -r con x y w h wx wy ww wh class; do
         [ -n "${class:-}" ] || continue
         [[ $class =~ $SKIP_CLASS_RE ]] && continue
-        if [ "$h" -gt "$wh" ]; then
-            i3-msg "[con_id=$con] resize set $w px $wh px" >/dev/null
+        if [ "$w" -gt "$ww" ] || [ "$h" -gt "$wh" ]; then
+            i3-msg "[con_id=$con] resize set $((w < ww ? w : ww)) px $((h < wh ? h : wh)) px" >/dev/null
             # A min size can refuse the shrink: place what it really took.
             read -r _ _ w h < <(frame_of "$con") || continue
         fi
-        i3-msg "[con_id=$con] move position $x px $(clamp "$y" "$h" "$wy" "$wh") px" >/dev/null
-    done < <(over_bar)
+        i3-msg "[con_id=$con] move position $(clamp "$x" "$w" "$wx" "$ww") px $(clamp "$y" "$h" "$wy" "$wh") px" >/dev/null
+    done < <(out_of_bounds)
 }
 
 # The daemon behind `guard`. i3 sends no event when a window moves or resizes
