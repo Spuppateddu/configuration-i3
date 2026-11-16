@@ -55,15 +55,19 @@ window { background: transparent; }
 }
 
 // A rounded chip behind the window counter and the free text, so any text
-// colour reads on the bar. Two parts: `.second` holds "1/", `.first` holds
-// "2 text"; focus.local.scss gives each the background that fits its colour
-// (cream under dark ones, near-black under light ones). These are fallbacks.
+// colour reads on the bar. Two boxes, `.second` holds "1/", `.first` holds
+// "2 text", but focus.local.scss gives both the same background, so it reads
+// as one chip of one colour. These are fallbacks.
 .barchip { margin-left: 6px; }
 .chip {
   background: $mantle;
   border-radius: 5px;
   padding: 0 6px;
   min-height: 16px;
+  font-weight: bold;
+  // GTK centres the whole line, tails of "p" "g" included, so digits and
+  // capitals sit high: push the labels down to centre what you see.
+  label { padding-top: 2px; }
 }
 // Side by side, the two parts read as one chip: no gap, no inner corners.
 .chip.second       { border-radius: 5px 0 0 5px; padding-right: 0; }
