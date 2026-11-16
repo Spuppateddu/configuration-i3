@@ -329,8 +329,9 @@ bit of border does not count. Only the shown tab of a tabbed or stacked
 container counts, and a fullscreen window hides the rest. i3 sends no event
 when a floating window is moved or resized, so the script re-reads the tree
 every second as well as on each window event, through i3's socket (no process
-per read, under 1 ms). The first number takes `BLE_I3_UNFOCUSED_COLOR`, the
-second `BLE_I3_BORDER_COLOR`, through `focus.local.scss`.
+per read, under 1 ms). The chip behind the counter and your text takes
+`BLE_I3_UNFOCUSED_COLOR`, and all the text on it `BLE_I3_BORDER_COLOR`, through
+`focus.local.scss`.
 
 Plugging a monitor in or out, or making another one primary, re-opens the bars by
 itself: `eww/scripts/screen.sh` is already subscribed to i3's `output` events, and
