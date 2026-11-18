@@ -12,6 +12,7 @@ CLAUDE.md
 
 # Build / runtime artifacts
 *.log
+__pycache__/
 /tmp/
 
 # Machine-specific i3 overrides (per-PC display scaling, etc.)

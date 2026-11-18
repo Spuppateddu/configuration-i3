@@ -128,13 +128,17 @@ and moves the window with the arrow keys.
 |---|---|
 | `h/j/k/l` | push that edge outward |
 | `H/J/K/L` | pull the same edge back in |
-| `←↓↑→` | move the window, size unchanged |
+| `←↓↑→` | move the window, size unchanged; stops flush against the next window in the way, press again to go over it |
 | `Return` / `Escape` / `$mod+r` | leave the mode |
 
 Sizing never touches the opposite edge, so you size a window against whichever
 corner you want it in. Growing stops dead at the usable workspace and a move
 stops flush against it, so a floating window can never end up off the monitor;
-shrinking always works, down to 120×80. That makes the whole window keyboard-
+shrinking always works, down to 120×80. A move also stops flush against
+the next floating window in its way, so two windows line up edge to edge with no
+gap. Hold the arrow and it stays parked there; let go and press it again and it
+moves over the other window at the usual speed. A press more than 80ms after the
+last one counts as "again" (`I3RC_MODE_REPRESS_MS`): a held key repeats every 20ms. That makes the whole window keyboard-
 only: size it with `hjkl`, then place it with the arrows.
 
 The keys never touch the window directly. Every key in the mode is a `nop`, and

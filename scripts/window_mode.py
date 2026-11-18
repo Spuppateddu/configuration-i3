@@ -52,6 +52,11 @@ except (ValueError, ImportError):
 STEP_PX = int(os.environ.get("I3RC_MODE_STEP_PX", 20))
 MIN_W = int(os.environ.get("I3RC_MODE_MIN_W", 120))
 MIN_H = int(os.environ.get("I3RC_MODE_MIN_H", 80))
+# An arrow move stops flush against the next floating window in its way; the
+# same arrow pressed again goes over it. "Again" means after the key was let go:
+# a held key repeats every 20ms (xset r rate 200 50), so a gap longer than this
+# is a new press, and a held key stays parked at the neighbour.
+REPRESS_MS = int(os.environ.get("I3RC_MODE_REPRESS_MS", 80))
 
 # When the pending keys are sent to i3: after this long with no key, and never
 # later than MAX_WAIT after the first unsent one. Tiled has no preview to lean
@@ -144,6 +149,55 @@ def locate(tree, con_id=None):
                 if hit(con):
                     return con, False, rect(con["rect"]), rect(ws["rect"])
     return None
+
+
+def neighbours(tree, con_id):
+    """Frames of the other floating windows on con_id's workspace: what an
+    arrow move snaps against."""
+    for ws in walk(tree):
+        if ws.get("type") != "workspace":
+            continue
+        frames = ws.get("floating_nodes", ())
+        if any(c.get("id") == con_id for fc in frames for c in walk(fc)):
+            return [rect(fc["rect"]) for fc in frames
+                    if not any(c.get("id") == con_id for c in walk(fc))]
+    return []
+
+
+def move_step(frame, ws, others, dir_, s, cross):
+    """Where one arrow press puts a floating frame, size kept.
+
+    A step that would run the leading edge into another window stops flush
+    against it. Already flush: stay put, unless `cross` (a fresh press), then
+    step over it as usual. Only windows that overlap on the other axis are in
+    the way — one that only shares a corner is not. The workspace clamp comes
+    last: the window stops flush against the edge, and one bigger than the
+    workspace pins to the top-left."""
+    wx, wy, ww, wh = ws
+    x, y, w, h = frame
+    horiz = dir_ in ("left", "right")
+    sign = -1 if dir_ in ("left", "up") else 1
+    pos, size = (x, w) if horiz else (y, h)
+    a0, a1 = (y, y + h) if horiz else (x, x + w)      # span on the other axis
+    lead = pos + size if sign > 0 else pos            # the edge that goes first
+    gap = s                                           # free room this way
+    for ox, oy, ow, oh in others:
+        opos, osize = (ox, ow) if horiz else (oy, oh)
+        b0, b1 = (oy, oy + oh) if horiz else (ox, ox + ow)
+        if b1 <= a0 or b0 >= a1:
+            continue
+        face = opos if sign > 0 else opos + osize     # its edge facing us
+        dist = (face - lead) * sign
+        if 0 <= dist < gap:
+            gap = dist
+    if gap == 0 and cross:
+        gap = s
+    pos += sign * gap
+    if horiz:
+        x = max(wx, min(pos, wx + ww - w))
+    else:
+        y = max(wy, min(pos, wy + wh - h))
+    return x, y, w, h
 
 
 def client_colour(name, skip=()):
@@ -244,6 +298,8 @@ class Mode:
         self.frame = None          # the box: where the window will be
         self.ws = None             # usable workspace rect
         self.border = 0            # tiled: the window's border width, for the frame
+        self.others = []           # floating: the other windows' frames, to snap to
+        self.last_move = (None, 0.0)  # (arrow, time) of the previous arrow press
         self.pending = None        # floating: True; tiled: {(way, dir): count}
         self.first_pending = 0.0
         self.flush_src = None
@@ -262,11 +318,13 @@ class Mode:
         if self.active:
             self.off()
             return
-        found = locate(self.ipc.tree())
+        tree = self.ipc.tree()
+        found = locate(tree)
         if not found:
             return
         con, self.floating, self.frame, self.ws = found
         self.con_id = con["id"]
+        self.others = neighbours(tree, self.con_id)
         self.border = con.get("current_border_width") or 0
         self.show_box()
         self.ipc.command('mode "resize floating"' if self.floating else 'mode "resize"')
@@ -291,11 +349,13 @@ class Mode:
             return False
         if self.pending:
             return True
-        found = locate(self.ipc.tree(), self.con_id)
+        tree = self.ipc.tree()
+        found = locate(tree, self.con_id)
         if not found:
             self.off()
             return False
         con, floating, self.frame, self.ws = found
+        self.others = neighbours(tree, self.con_id)
         self.border = con.get("current_border_width") or 0
         if floating != self.floating:
             # Tiled <-> floated mid-mode ($mod+Shift+space): follow the window.
@@ -349,16 +409,13 @@ class Mode:
             elif dir_ == "down":
                 nh = max(MIN_H, h - s)
         elif how == "move":
-            # Size kept, clamped on the workspace: the window stops flush against
-            # the edge. A window bigger than the workspace pins to the top-left.
-            if dir_ == "left":
-                nx = max(wx, x - s)
-            elif dir_ == "up":
-                ny = max(wy, y - s)
-            elif dir_ == "right":
-                nx = max(wx, min(x + s, wx + ww - w))
-            elif dir_ == "down":
-                ny = max(wy, min(y + s, wy + wh - h))
+            if dir_ not in ("left", "right", "up", "down"):
+                return
+            now = time.monotonic()
+            last_dir, last_t = self.last_move
+            self.last_move = (dir_, now)
+            fresh = dir_ != last_dir or (now - last_t) * 1000 > REPRESS_MS
+            nx, ny, nw, nh = move_step(self.frame, self.ws, self.others, dir_, s, fresh)
         else:
             return
         if (nx, ny, nw, nh) == (x, y, w, h):
