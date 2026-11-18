@@ -13,7 +13,14 @@ dir="${1:-}"
 SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 # Two centres are level on an axis when closer than this percent of the smaller
-# window there (at least LEVEL_PX). Level on both: a pile, stepped by con id.
+# window there (at least LEVEL_PX). Level on both: a pile.
+#
+# No loops: every press goes strictly forward in one fixed order — centre on the
+# forward axis, then con id — so a run of presses one way always ends at a wall.
+# A pile is walked in that order too: by position when its windows sit a few
+# pixels apart, by con id when they sit exactly on top of each other. Stepping
+# a near-pile by con id alone went back and forth between its windows forever
+# and never reached the ones past it.
 LEVEL_PCT=${I3RC_FOCUS_LEVEL_PCT:-10}
 LEVEL_PX=${I3RC_FOCUS_LEVEL_PX:-20}
 
@@ -63,21 +70,22 @@ def sign: if $dir == "left" or $dir == "up" then -1 else 1 end;
         | ([$lvl, ([.rect[$sl], $cur.rect[$sl]] | min) * $pct / 100] | max) as $ls
         # Ahead means in the same row, or else inside the 45 degree cone.
         | if $fwd > $lf and ($cost == 0 or $fwd >= $side)
-          then { id, m: $m, rect, score: ($fwd + $sw * $cost) }
+          then { id, m: $m, rect, score: [1, $fwd + $sw * $cost, 0] }
           elif ($fwd | fabs) <= $lf and $side <= $ls
-               and ((.id - $cur.id) * sign) > 0
-          # Same pile: the next con id that way, before anything farther off.
-          then { id, m: $m, rect, score: (-1e9 + ((.id - $cur.id) | fabs)) }
+               and ($fwd > 0 or ($fwd == 0 and ((.id - $cur.id) * sign) > 0))
+          # Same pile: the next one that way, before anything farther off. Only
+          # forward (or, exactly level, a con id further that way): never back.
+          then { id, m: $m, rect, score: [0, $fwd, ((.id - $cur.id) | fabs)] }
           else empty end ] as $cands
     | ($cands | min_by(.score)) as $best
     | if $best == null then empty
-      # Landing on a pile: enter it at its first con id that way, so the next
-      # presses walk all of it.
+      # Landing on a pile: enter it at its first window that way (position,
+      # then con id), so the next presses walk all of it.
       else [ $cands[] | select(((.m.x - $best.m.x) | fabs)
                     <= ([$lvl, ([.rect.width, $best.rect.width] | min) * $pct / 100] | max)
                 and ((.m.y - $best.m.y) | fabs)
                     <= ([$lvl, ([.rect.height, $best.rect.height] | min) * $pct / 100] | max)) ]
-           | min_by(.id * sign) | .id
+           | min_by([.m[$f] * sign, .id * sign]) | .id
       end
   end'
 

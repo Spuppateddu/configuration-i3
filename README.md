@@ -116,9 +116,11 @@ stashes it in the scratchpad — the closest thing i3 has to a minimise.
 `$mod+h/j/k/l` (and `$mod+←↓↑→`) move focus by **position**, through
 [`scripts/focus_dir.sh`](./scripts/focus_dir.sh): i3's own focus walks floating
 windows in list order, blind to where they sit. From a floating window it picks
-the nearest window that way on any monitor, comparing centres, so a huge window
-still has a left and a right. Nothing that way: focus stays put. Windows stacked
-on the same spot are a pile, walked one by one in a fixed order. From a tiled
+the nearest window that way on the focused monitor, comparing centres, so a huge
+window still has a left and a right. Nothing that way: focus stays put. Windows
+stacked on the same spot, or nearly, are a pile, walked one by one in a fixed
+order. Every press only goes forward in that order, so pressing one key again
+and again never loops: it walks every window that way, then stops at a wall. From a tiled
 window it is plain i3 focus.
 
 `$mod+r` is layout-aware the same way, through
