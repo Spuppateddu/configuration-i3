@@ -73,7 +73,9 @@ quarter** of it — so you always keep three quarters of the old window and all 
 the new one, and no two windows opened in a row land in the same place. It is
 not just left or right: dead centre, a little up and to the right, low on the
 left, all of them come up, whichever ones happen to leave the old window
-readable.
+readable. If the spot drawn is within 48px of another window, a gap or an
+overlap, the new window slides that last bit so the two sit **edge to edge**
+(`I3RC_SNAP_PX`, 0 turns it off).
 
 The rest is tie-breaking you rarely notice:
 
@@ -126,18 +128,22 @@ and moves the window with the arrow keys.
 
 | | floating window |
 |---|---|
-| `h/j/k/l` | push that edge outward |
-| `H/J/K/L` | pull the same edge back in |
+| `h/j/k/l` | push that edge outward; stops flush against the next window, press again to go over it |
+| `H/J/K/L` | pull the same edge back in; stops flush where it leaves a window it was covering |
 | `←↓↑→` | move the window, size unchanged; stops flush against the next window in the way, press again to go over it |
 | `Return` / `Escape` / `$mod+r` | leave the mode |
 
 Sizing never touches the opposite edge, so you size a window against whichever
 corner you want it in. Growing stops dead at the usable workspace and a move
 stops flush against it, so a floating window can never end up off the monitor;
-shrinking always works, down to 120×80. A move also stops flush against
-the next floating window in its way, so two windows line up edge to edge with no
-gap. Hold the arrow and it stays parked there; let go and press it again and it
-moves over the other window at the usual speed. A press more than 80ms after the
+shrinking always works, down to 120×80. Every key also stops flush against
+the other floating windows, so two windows line up edge to edge with no gap: a
+move or a grow at the window it runs into, a shrink at the edge of a window it
+was covering. Hold the key and it stays parked there; let go and press it again
+and it goes over the other window at the usual speed (a shrink just goes on). Only
+windows you can see count: one on another workspace, or wholly hidden under the
+windows stacked above it, is ignored (the window you move never counts as
+hiding one). New windows snap by the same rule. A press more than 80ms after the
 last one counts as "again" (`I3RC_MODE_REPRESS_MS`): a held key repeats every 20ms. That makes the whole window keyboard-
 only: size it with `hjkl`, then place it with the arrows.
 
@@ -183,6 +189,7 @@ I3RC_QUARTER_H_PCT=50 # ...and its height
 I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
 I3RC_PLACE_ROWS=1     # ...and down it; 1 = vertically centred
 I3RC_MAX_COVER_PCT=25 # how much of the window you came from a new one may hide
+I3RC_SNAP_PX=48       # a new window this close to another slides flush; 0 = off
 ```
 
 ### Tiling mode

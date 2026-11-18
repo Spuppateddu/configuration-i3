@@ -52,8 +52,8 @@ except (ValueError, ImportError):
 STEP_PX = int(os.environ.get("I3RC_MODE_STEP_PX", 20))
 MIN_W = int(os.environ.get("I3RC_MODE_MIN_W", 120))
 MIN_H = int(os.environ.get("I3RC_MODE_MIN_H", 80))
-# An arrow move stops flush against the next floating window in its way; the
-# same arrow pressed again goes over it. "Again" means after the key was let go:
+# A move or a resize stops flush against the next floating window in its way;
+# the same key pressed again goes over it. "Again" means after the key was let go:
 # a held key repeats every 20ms (xset r rate 200 50), so a gap longer than this
 # is a new press, and a held key stays parked at the neighbour.
 REPRESS_MS = int(os.environ.get("I3RC_MODE_REPRESS_MS", 80))
@@ -151,52 +151,124 @@ def locate(tree, con_id=None):
     return None
 
 
+def covered(r, above):
+    """True when the rects in `above` hide all of r. The edges of r and of the
+    overlapping rects cut r into cells; r is hidden when every cell is."""
+    x, y, w, h = r
+    over = [o for o in above
+            if o[0] < x + w and x < o[0] + o[2] and o[1] < y + h and y < o[1] + o[3]]
+    if not over:
+        return False
+    xs = sorted({x, x + w} | {v for o in over for v in (o[0], o[0] + o[2]) if x < v < x + w})
+    ys = sorted({y, y + h} | {v for o in over for v in (o[1], o[1] + o[3]) if y < v < y + h})
+    for x0, x1 in zip(xs, xs[1:]):
+        for y0, y1 in zip(ys, ys[1:]):
+            cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+            if not any(o[0] <= cx < o[0] + o[2] and o[1] <= cy < o[1] + o[3] for o in over):
+                return False
+    return True
+
+
+def visible(frames):
+    """The frames, bottom to top, that some part of still shows: a window wholly
+    under the ones stacked above it is not something to line up against."""
+    return [f for i, f in enumerate(frames) if not covered(f, frames[i + 1:])]
+
+
 def neighbours(tree, con_id):
-    """Frames of the other floating windows on con_id's workspace: what an
-    arrow move snaps against."""
+    """Frames of the other floating windows on con_id's workspace that can be
+    seen: what a move or resize snaps against. i3 lists floating_nodes bottom
+    to top. Our own window never counts as hiding one: it is the one moving."""
     for ws in walk(tree):
         if ws.get("type") != "workspace":
             continue
         frames = ws.get("floating_nodes", ())
         if any(c.get("id") == con_id for fc in frames for c in walk(fc)):
-            return [rect(fc["rect"]) for fc in frames
-                    if not any(c.get("id") == con_id for c in walk(fc))]
+            return visible([rect(fc["rect"]) for fc in frames
+                            if not any(c.get("id") == con_id for c in walk(fc))])
     return []
 
 
-def move_step(frame, ws, others, dir_, s, cross):
-    """Where one arrow press puts a floating frame, size kept.
+def stop_gap(frame, others, edge, sign, s, cross, outward):
+    """How far `edge` of frame may travel this press, at most s.
 
-    A step that would run the leading edge into another window stops flush
-    against it. Already flush: stay put, unless `cross` (a fresh press), then
-    step over it as usual. Only windows that overlap on the other axis are in
-    the way — one that only shares a corner is not. The workspace clamp comes
+    It stops flush against the next window in its way: a left/top edge on the
+    others' right/bottom edges, a right/bottom edge on their left/top ones. Only
+    windows that overlap on the other axis are in the way — one that only shares
+    a corner is not. An edge already flush and heading into the window (outward:
+    a move or a grow) stays put, unless `cross` (a fresh press), then it steps
+    over as usual. A shrink starting flush is heading away, so it never stops."""
+    x, y, w, h = frame
+    horiz = edge in ("left", "right")
+    high = edge in ("right", "down")
+    pos = (x + w if high else x) if horiz else (y + h if high else y)
+    a0, a1 = (y, y + h) if horiz else (x, x + w)      # span on the other axis
+    gap = s
+    for ox, oy, ow, oh in others:
+        b0, b1 = (oy, oy + oh) if horiz else (ox, ox + ow)
+        if b1 <= a0 or b0 >= a1:
+            continue
+        lo, size = (ox, ow) if horiz else (oy, oh)
+        line = lo if high else lo + size
+        dist = (line - pos) * sign
+        if 0 < dist < gap or (dist == 0 and outward):
+            gap = dist
+    if gap == 0 and cross:
+        gap = s
+    return gap
+
+
+def move_step(frame, ws, others, dir_, s, cross):
+    """Where one arrow press puts a floating frame, size kept: the leading edge
+    stops flush against the next window (stop_gap). The workspace clamp comes
     last: the window stops flush against the edge, and one bigger than the
     workspace pins to the top-left."""
     wx, wy, ww, wh = ws
     x, y, w, h = frame
-    horiz = dir_ in ("left", "right")
     sign = -1 if dir_ in ("left", "up") else 1
-    pos, size = (x, w) if horiz else (y, h)
-    a0, a1 = (y, y + h) if horiz else (x, x + w)      # span on the other axis
-    lead = pos + size if sign > 0 else pos            # the edge that goes first
-    gap = s                                           # free room this way
-    for ox, oy, ow, oh in others:
-        opos, osize = (ox, ow) if horiz else (oy, oh)
-        b0, b1 = (oy, oy + oh) if horiz else (ox, ox + ow)
-        if b1 <= a0 or b0 >= a1:
-            continue
-        face = opos if sign > 0 else opos + osize     # its edge facing us
-        dist = (face - lead) * sign
-        if 0 <= dist < gap:
-            gap = dist
-    if gap == 0 and cross:
-        gap = s
-    pos += sign * gap
-    if horiz:
-        x = max(wx, min(pos, wx + ww - w))
+    g = sign * stop_gap(frame, others, dir_, sign, s, cross, True)
+    if dir_ in ("left", "right"):
+        x = max(wx, min(x + g, wx + ww - w))
     else:
-        y = max(wy, min(pos, wy + wh - h))
+        y = max(wy, min(y + g, wy + wh - h))
+    return x, y, w, h
+
+
+def edge_step(frame, ws, others, how, dir_, s, cross):
+    """Where one hjkl (grow) or HJKL (shrink) press puts a floating frame.
+
+    Grow pushes edge `dir_` out, shrink pulls the same edge in; the opposite
+    edge never moves. Both stop flush against another window (stop_gap): a
+    grow at the window it runs into, a shrink at the edge of a window it was
+    covering. Growing is clamped on the workspace, so an edge already
+    off-screen comes back to it instead of running further out; shrinking
+    stops at MIN_W x MIN_H."""
+    wx, wy, ww, wh = ws
+    x, y, w, h = frame
+    grow = how == "grow"
+    low = dir_ in ("left", "up")
+    sign = (-1 if low else 1) * (1 if grow else -1)   # which way the edge goes
+    g = stop_gap(frame, others, dir_, sign, s, cross, grow)
+    if grow:
+        if dir_ == "left":
+            nx = max(wx, x - g); w += x - nx; x = nx
+        elif dir_ == "up":
+            ny = max(wy, y - g); h += y - ny; y = ny
+        elif dir_ == "right":
+            w = min(w + g, wx + ww - x)
+        else:
+            h = min(h + g, wy + wh - y)
+    else:
+        if dir_ in ("left", "right"):
+            nw = max(MIN_W, w - g)
+            if dir_ == "left":
+                x += w - nw
+            w = nw
+        else:
+            nh = max(MIN_H, h - g)
+            if dir_ == "up":
+                y += h - nh
+            h = nh
     return x, y, w, h
 
 
@@ -299,7 +371,7 @@ class Mode:
         self.ws = None             # usable workspace rect
         self.border = 0            # tiled: the window's border width, for the frame
         self.others = []           # floating: the other windows' frames, to snap to
-        self.last_move = (None, 0.0)  # (arrow, time) of the previous arrow press
+        self.last_key = (None, 0.0)  # ((how, dir), time) of the previous press
         self.pending = None        # floating: True; tiled: {(way, dir): count}
         self.first_pending = 0.0
         self.flush_src = None
@@ -382,42 +454,16 @@ class Mode:
             self.step_tiled(how, dir_)
 
     def step_floating(self, how, dir_):
-        wx, wy, ww, wh = self.ws
-        x, y, w, h = self.frame
-        s = STEP_PX
-        nx, ny, nw, nh = x, y, w, h
-        if how == "grow":
-            # Clamped on the workspace edge, so an edge already off-screen
-            # comes back to it instead of running further out.
-            if dir_ == "left":
-                nx = max(wx, x - s); nw = w + x - nx
-            elif dir_ == "up":
-                ny = max(wy, y - s); nh = h + y - ny
-            elif dir_ == "right":
-                nw = min(w + s, wx + ww - x)
-            elif dir_ == "down":
-                nh = min(h + s, wy + wh - y)
-        elif how == "shrink":
-            # Pulls the same edge in: `left` walks the left edge right, so the
-            # window loses width on its left side and the right edge stays put.
-            if dir_ == "left":
-                nw = max(MIN_W, w - s); nx = x + w - nw
-            elif dir_ == "up":
-                nh = max(MIN_H, h - s); ny = y + h - nh
-            elif dir_ == "right":
-                nw = max(MIN_W, w - s)
-            elif dir_ == "down":
-                nh = max(MIN_H, h - s)
-        elif how == "move":
-            if dir_ not in ("left", "right", "up", "down"):
-                return
-            now = time.monotonic()
-            last_dir, last_t = self.last_move
-            self.last_move = (dir_, now)
-            fresh = dir_ != last_dir or (now - last_t) * 1000 > REPRESS_MS
-            nx, ny, nw, nh = move_step(self.frame, self.ws, self.others, dir_, s, fresh)
-        else:
+        if how not in ("grow", "shrink", "move") or dir_ not in ("left", "right", "up", "down"):
             return
+        x, y, w, h = self.frame
+        now = time.monotonic()
+        last_key, last_t = self.last_key
+        self.last_key = ((how, dir_), now)
+        fresh = (how, dir_) != last_key or (now - last_t) * 1000 > REPRESS_MS
+        step = move_step if how == "move" else (
+            lambda f, ws, o, d, s, c: edge_step(f, ws, o, how, d, s, c))
+        nx, ny, nw, nh = step(self.frame, self.ws, self.others, dir_, STEP_PX, fresh)
         if (nx, ny, nw, nh) == (x, y, w, h):
             return
         self.frame = (nx, ny, nw, nh)

@@ -54,6 +54,10 @@ PLACE_ROWS=${I3RC_PLACE_ROWS:-1}
 # spots that hide nothing of it at all.
 MAX_COVER_PCT=${I3RC_MAX_COVER_PCT:-25}
 
+# A new window that lands this close to another one, gap or overlap, is slid
+# that last bit so the two sit edge to edge. 0 turns it off.
+SNAP_PX=${I3RC_SNAP_PX:-48}
+
 # Classes the daemon never resizes: their window *is* the screen, so a
 # standard-size frame breaks them outright.
 SKIP_CLASS_RE=${I3RC_FLOAT_SKIP:-'^(flameshot|i3lock)$'}
@@ -105,6 +109,40 @@ peers_of() {
         | $ws.floating_nodes[]
         | select(.id != $self)
         | "\(.rect.x) \(.rect.y) \(.rect.width) \(.rect.height) \(if .id == $prev then 1 else 0 end)"'
+}
+
+# "<x> <y> <w> <h>" per floating window on con $1's workspace that can be seen,
+# that one left out: what a new window snaps against. i3 lists floating_nodes
+# bottom to top, so a window is hidden when the ones after it cover it all —
+# the edges of the overlapping rects cut it into cells, hidden when every cell
+# is. The new window never counts as hiding one.
+visible_peers_of() {
+    i3-msg -t get_tree | jq -r --argjson id "$1" "$JQ_DESC"'
+        def hit($a; $b): $b.x < $a.x + $a.width and $a.x < $b.x + $b.width
+                     and $b.y < $a.y + $a.height and $a.y < $b.y + $b.height;
+        def covered($r; $above):
+            [ $above[] | select(hit($r; .)) ] as $o
+            | if ($o | length) == 0 then false else
+                ([ $r.x, $r.x + $r.width, ($o[] | .x, .x + .width)
+                   | select(. >= $r.x and . <= $r.x + $r.width) ] | unique) as $xs
+              | ([ $r.y, $r.y + $r.height, ($o[] | .y, .y + .height)
+                   | select(. >= $r.y and . <= $r.y + $r.height) ] | unique) as $ys
+              | all( range(0; ($xs | length) - 1) as $i
+                     | range(0; ($ys | length) - 1) as $j
+                     | { cx: (($xs[$i] + $xs[$i + 1]) / 2),
+                         cy: (($ys[$j] + $ys[$j + 1]) / 2) };
+                     . as $c | any($o[]; .x <= $c.cx and $c.cx < .x + .width
+                                     and .y <= $c.cy and $c.cy < .y + .height) )
+              end;
+        [ desc | select(.type == "workspace")
+               | select([desc | select(.id == $id)] | length > 0) ]
+        | first // empty
+        | [ .floating_nodes[]
+            | select([desc | select(.id == $id)] | length == 0)
+            | .rect ] as $f
+        | range(0; $f | length) as $i
+        | select(covered($f[$i]; $f[$i + 1:]) | not)
+        | $f[$i] | "\(.x) \(.y) \(.width) \(.height) 0"'
 }
 
 # "<n> <lo> <hi> <mid>" in, n candidate positions out: evenly spaced from <lo>
@@ -201,6 +239,38 @@ free_spot() {
 
     i=${pick[RANDOM % ${#pick[@]}]}
     printf '%d %d\n' "${slot_x[i]}" "${slot_y[i]}"
+}
+
+# "<con> <W> <H> <X> <Y> <ws-x> <ws-y> <ws-w> <ws-h>" in, "<X> <Y>" out: the
+# spot free_spot drew, slid flush against a window it nearly touches. Per axis,
+# of every edge pair within SNAP_PX — our left on its right, our right on its
+# left, the same for top and bottom — the smallest slide wins, and only windows
+# that overlap us on the other axis count (a shared corner is not "beside").
+# Already flush on an axis: that axis stays. The workspace clamp comes last.
+snap_spot() {
+    local id=$1 w=$2 h=$3 x=$4 y=$5 wx=$6 wy=$7 ww=$8 wh=$9
+    local a b c d f e bx=-1 by=-1 dx=0 dy=0
+    if [ "$SNAP_PX" -gt 0 ] 2>/dev/null; then
+        while read -r a b c d f; do
+            [ -n "${f:-}" ] || continue
+            if [ "$y" -lt $((b + d)) ] && [ "$b" -lt $((y + h)) ]; then
+                for e in $((a + c - x)) $((a - x - w)); do
+                    [ "${e#-}" -le "$SNAP_PX" ] || continue
+                    if [ "$bx" -lt 0 ] || [ "${e#-}" -lt "$bx" ]; then bx=${e#-}; dx=$e; fi
+                done
+            fi
+            if [ "$x" -lt $((a + c)) ] && [ "$a" -lt $((x + w)) ]; then
+                for e in $((b + d - y)) $((b - y - h)); do
+                    [ "${e#-}" -le "$SNAP_PX" ] || continue
+                    if [ "$by" -lt 0 ] || [ "${e#-}" -lt "$by" ]; then by=${e#-}; dy=$e; fi
+                done
+            fi
+        done < <(visible_peers_of "$id")
+    fi
+    x=$((x + dx)); y=$((y + dy))
+    x=$((x > wx + ww - w ? wx + ww - w : x)); x=$((x < wx ? wx : x))
+    y=$((y > wy + wh - h ? wy + wh - h : y)); y=$((y < wy ? wy : y))
+    printf '%d %d\n' "$x" "$y"
 }
 
 # "down <x> <y> <w> <h>" in, "<W> <H> <X> <Y>" out: the standard size, centred.
@@ -473,6 +543,8 @@ place_con() {
         # moves it to whichever slot hides the least of what is already open.
         read -r tw th tx ty < <(target down "$x" "$y" "$w" "$h")
         read -r tx ty < <(free_spot "$1" "$tw" "$th" "$tx" "$ty" \
+                                    "$x" "$y" "$w" "$h")
+        read -r tx ty < <(snap_spot "$1" "$tw" "$th" "$tx" "$ty" \
                                     "$x" "$y" "$w" "$h")
         apply "con_id=$1" "$tw" "$th" "$tx" "$ty"
     else
