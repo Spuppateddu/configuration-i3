@@ -99,14 +99,15 @@ shrunk to fit. Fullscreen windows and flameshot are left alone.
 | | floating window | tiled window |
 |---|---|---|
 | `$mod+Shift+h` / `l` | one step left / right over five stops — left edge, halfway, centre, halfway, right edge — same size; stops at the edge | move it left / right |
-| `$mod+Shift+k` | one step bigger on the ladder full → half → tall → quarter, centred vertically, left edge kept; stops at full | move it up |
-| `$mod+Shift+j` | one step smaller on the same ladder, centred vertically, left edge kept; stops at quarter | move it down |
+| `$mod+Shift+k` | one step bigger on the ladder full → half → tall → quarter → eighth, centred vertically, left edge kept; stops at full | move it up |
+| `$mod+Shift+j` | one step smaller on the same ladder, centred vertically, left edge kept; stops at eighth | move it down |
 
 The ladder's steps: **full** (the whole screen below the bar — still a floating
 window, not fullscreen), **half** (50% × 100% of the screen; only the
 size changes, the left edge stays), **tall**
 (45% × 100%), **quarter** (50% × 50%, one of the four parts of the screen cut
-in two both ways). A window in none of these shapes goes to tall on `k` and to
+in two both ways), **eighth** (25% × 50%, the quarter cut in two — a small,
+almost square window on a wide screen). A window in none of these shapes goes to tall on `k` and to
 quarter on `j`.
 
 The arrow keys (`$mod+Shift+←↓↑→`) never snap: on a floating window they nudge
@@ -177,7 +178,7 @@ for the open windows), so each rule fires again on that window's next title
 change: a `move position center` there would fling windows you had placed by
 hand back to the middle, minutes after the reload.
 
-Eleven knobs, all optional, exported before i3 starts:
+Thirteen knobs, all optional, exported before i3 starts:
 
 ```bash
 I3RC_STD_W_PCT=45     # standard window width, % of the usable workspace
@@ -186,8 +187,10 @@ I3RC_VMAX_W_PCT=100   # width of the full shape (top of the $mod+Shift+j/k ladde
 I3RC_VMAX_H_PCT=100   # ...and its height
 I3RC_HALF_W_PCT=50    # the half shape (second rung of the ladder), % of the same
 I3RC_HALF_H_PCT=100   # ...and its height
-I3RC_QUARTER_W_PCT=50 # the quarter shape (bottom rung), % of the same
+I3RC_QUARTER_W_PCT=50 # the quarter shape (fourth rung), % of the same
 I3RC_QUARTER_H_PCT=50 # ...and its height
+I3RC_EIGHTH_W_PCT=25  # the eighth shape (bottom rung), % of the same
+I3RC_EIGHTH_H_PCT=50  # ...and its height
 I3RC_PLACE_COLS=9     # candidate spots across the screen; 1 = always centred
 I3RC_PLACE_ROWS=1     # ...and down it; 1 = vertically centred
 I3RC_MAX_COVER_PCT=25 # how much of the window you came from a new one may hide

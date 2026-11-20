@@ -29,10 +29,13 @@ STD_W_PCT=${I3RC_STD_W_PCT:-45}
 STD_H_PCT=${I3RC_STD_H_PCT:-100}
 
 # The ladder, `move up` one rung bigger, `move down` one smaller, stopping at
-# the ends: full -> half -> tall (STD) -> quarter. The quarter is one of the
-# four parts of the screen cut in two both ways: 50% x 50%.
+# the ends: full -> half -> tall (STD) -> quarter -> eighth. The quarter is one
+# of the four parts of the screen cut in two both ways: 50% x 50%. The eighth is
+# the quarter cut in two across: 25% x 50%, close to a square on a wide screen.
 QUARTER_W_PCT=${I3RC_QUARTER_W_PCT:-50}
 QUARTER_H_PCT=${I3RC_QUARTER_H_PCT:-50}
+EIGHTH_W_PCT=${I3RC_EIGHTH_W_PCT:-25}
+EIGHTH_H_PCT=${I3RC_EIGHTH_H_PCT:-50}
 
 # The half rung: half the screen's width, full height. Only the size: the
 # window keeps its left edge, like every rung.
@@ -343,9 +346,9 @@ slide() {
     i3-msg "[con_id=$con] move position $to px $fy px" >/dev/null
 }
 
-# $1 up|down: one rung up or down full -> half -> tall -> quarter, centred
-# vertically, left edge kept. Stops at the ends; any other shape gets tall (up)
-# or quarter (down).
+# $1 up|down: one rung up or down full -> half -> tall -> quarter -> eighth,
+# centred vertically, left edge kept. Stops at the ends; any other shape gets
+# tall (up) or quarter (down).
 set_shape() {
     local dir=$1 con x y w h fx fy fw fh i dw dh tw th next cur=-1
     local s_con s_i s_w s_h state
@@ -353,14 +356,16 @@ set_shape() {
     state="$(i3rc_runtime_dir)/i3rc-ladder"
     read -r con _ x y w h fx fy fw fh < <(focused_frame) || return 0
     [ -n "${fh:-}" ] || return 0
-    # Rungs, biggest first: 0 full, 1 half, 2 tall, 3 quarter.
+    # Rungs, biggest first: 0 full, 1 half, 2 tall, 3 quarter, 4 eighth.
     sw=("$((w * VMAX_W_PCT / 100))" "$((w * HALF_W_PCT / 100))"
-        "$((w * STD_W_PCT / 100))" "$((w * QUARTER_W_PCT / 100))")
+        "$((w * STD_W_PCT / 100))" "$((w * QUARTER_W_PCT / 100))"
+        "$((w * EIGHTH_W_PCT / 100))")
     sh=("$((h * VMAX_H_PCT / 100))" "$((h * HALF_H_PCT / 100))"
-        "$((h * STD_H_PCT / 100))" "$((h * QUARTER_H_PCT / 100))")
+        "$((h * STD_H_PCT / 100))" "$((h * QUARTER_H_PCT / 100))"
+        "$((h * EIGHTH_H_PCT / 100))")
 
     # 3% slack: a terminal snaps its size to whole cells, so it rarely lands exact.
-    for ((i = 0; i < 4; i++)); do
+    for ((i = 0; i < 5; i++)); do
         dw=$((fw - sw[i])); dh=$((fh - sh[i]))
         if [ "${dw#-}" -le $((w * 3 / 100)) ] && [ "${dh#-}" -le $((h * 3 / 100)) ]; then
             cur=$i; break
@@ -378,7 +383,7 @@ set_shape() {
     elif [ "$dir" = up ]; then
         next=$((cur > 0 ? cur - 1 : 0))
     else
-        next=$((cur < 3 ? cur + 1 : 3))
+        next=$((cur < 4 ? cur + 1 : 4))
     fi
 
     tw=${sw[next]}; th=${sh[next]}
