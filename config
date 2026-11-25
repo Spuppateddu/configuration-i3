@@ -134,7 +134,7 @@ bindsym $mod+Right  exec --no-startup-id ~/.i3rc/scripts/focus_dir.sh right
 
 # ── Move / snap ───────────────────────────────────────────────────────────
 # Layout-aware, because i3 can't be: floating, h/l step left edge, halfway, centre,
-# halfway, right edge; j grows and k shrinks along full, half, tall, quarter, eighth.
+# halfway, right edge; k/j step up/down full, half, tall, quarter, eighth.
 # A tiled one moves. float.sh.
 bindsym $mod+Shift+$left  exec --no-startup-id ~/.i3rc/scripts/float.sh move left
 bindsym $mod+Shift+$down  exec --no-startup-id ~/.i3rc/scripts/float.sh move down
@@ -232,9 +232,11 @@ mode "resize floating" {
     bindsym $right nop window_mode grow right
 
     # The shifted keysym, not Shift+$left: i3 matches what the key produces.
+    # J and K are swapped on purpose: the edge moves the way the key points —
+    # J pulls the top edge down, K pulls the bottom edge up.
     bindsym Shift+H nop window_mode shrink left
-    bindsym Shift+J nop window_mode shrink down
-    bindsym Shift+K nop window_mode shrink up
+    bindsym Shift+J nop window_mode shrink up
+    bindsym Shift+K nop window_mode shrink down
     bindsym Shift+L nop window_mode shrink right
 
     # The arrows move instead of resizing — they used to repeat hjkl, which

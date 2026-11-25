@@ -301,11 +301,8 @@ cmd_move() {
     [ -n "${h:-}" ] || return 0
     case $state in
         user_on|auto_on)
-            # j (down) grows, k (up) shrinks: the ladder runs against the arrow.
-            if [ "$dir" = down ]; then
-                set_shape up
-            elif [ "$dir" = up ]; then
-                set_shape down
+            if [ "$dir" = down ] || [ "$dir" = up ]; then
+                set_shape "$dir"
             else
                 slide "$dir"
             fi ;;
