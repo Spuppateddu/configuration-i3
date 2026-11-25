@@ -175,18 +175,15 @@ window { background: transparent; }
   border-radius: 5px;
   background: $text;
 }
-// Past 100% and muted keep the fill colour and add diagonal stripes on top, so
-// a new focused colour needs no change here. Boost: dark stripes. Muted: stripes
-// in the trough colour, so the fill looks faded.
-.volbar.boost highlight {
-  background-image: repeating-linear-gradient(-45deg,
-    transparent 0px, transparent 2px,
-    rgba(0, 0, 0, 0.4) 2px, rgba(0, 0, 0, 0.4) 4px);
-}
+// Muted: the whole bar goes red, trough and fill alike, with thin dark
+// diagonal stripes, so it shows at any level, 0% too. `.volbar.muted` beats
+// focus.local.scss's `.volbar highlight`, so the red wins over the focus colour.
+.volbar.muted trough,
 .volbar.muted highlight {
+  background-color: $red;
   background-image: repeating-linear-gradient(-45deg,
-    transparent 0px, transparent 2px,
-    $surface1 2px, $surface1 4px);
+    transparent 0px, transparent 3px,
+    rgba(0, 0, 0, 0.35) 3px, rgba(0, 0, 0, 0.35) 4px);
 }
 
 .blue     { color: $blue; }
