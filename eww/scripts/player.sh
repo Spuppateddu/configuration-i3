@@ -18,8 +18,10 @@ SEP="   •   "
 FRAMES=6      # scroll frames between metadata refreshes
 TICK=0.3
 
-PLAYER="" STATUS="none" TITLE="" ARTIST=""
+PLAYER="" STATUS="none" TITLE="" ARTIST="" POS="" LEN=""
 SRC="" OFFSET=0 SCROLL=0 TEXT="" BLANK=""
+POS_US=0 LEN_US=0 POS_AT=0    # last position read, track length, when it was read (µs)
+ELAPSED="" LEFT="" PCT=0
 
 # Marquee width follows the density tier screen.sh writes to a state file.
 # Parsed, never sourced — sourcing would run that file's contents as shell.
@@ -51,10 +53,48 @@ fetch() {
         *) STATUS="none"; TITLE=""; ARTIST="" ;;
     esac
 
+    # Integers only: some players send the length as a float, and a stream none.
+    POS_US=${POS%%.*}; LEN_US=${LEN%%.*}
+    [[ $POS_US =~ ^[0-9]+$ ]] || POS_US=0
+    [[ $LEN_US =~ ^[0-9]+$ ]] || LEN_US=0
+    now_us; POS_AT=$NOW
+
     local text="$TITLE"
     [ -n "$ARTIST" ] && text="$TITLE — $ARTIST"
     [ "$text" = "$SRC" ] || { SRC="$text"; OFFSET=0; }
     SCROLL=$(( ${#SRC} > TITLE_W ? 1 : 0 ))
+}
+
+# NOW = microseconds since the epoch, from bash itself: no `date` and no
+# subshell 3×/second.
+now_us() {
+    NOW=${EPOCHREALTIME/[.,]/}
+    NOW=${NOW:-0}
+}
+
+# 83 → "1:23", 3723 → "1:02:03".
+fmt_time() {
+    local s=$1 h m
+    h=$((s / 3600)) m=$((s % 3600 / 60)) s=$((s % 60))
+    if [ "$h" -gt 0 ]; then printf -v FMT '%d:%02d:%02d' "$h" "$m" "$s"
+    else                    printf -v FMT '%d:%02d' "$m" "$s"
+    fi
+}
+
+# Fills ELAPSED/LEFT/PCT. The position is read only on a refetch (every 2s at
+# most), so while Playing it moves on by the time gone since. No length (a live
+# stream, or a player that does not say): all empty, and the bar hides the row.
+progress() {
+    ELAPSED="" LEFT="" PCT=0
+    [ "$LEN_US" -gt 0 ] || return 0
+    local pos=$POS_US
+    if [ "$STATUS" = "Playing" ]; then now_us; pos=$((pos + NOW - POS_AT)); fi
+    [ "$pos" -gt "$LEN_US" ] && pos=$LEN_US
+    fmt_time $((pos / 1000000)); ELAPSED=$FMT
+    # Round the time left up, so it ends on 0:00 and not one second early.
+    fmt_time $(((LEN_US - pos + 999999) / 1000000)); LEFT="-$FMT"
+    PCT=$((pos * 1000 / LEN_US))
+    printf -v PCT '%d.%d' $((PCT / 10)) $((PCT % 10))
 }
 
 # Renders SRC into TEXT, exactly TITLE_W chars wide.
@@ -77,13 +117,14 @@ render() {
 emit() {
     local js jt ja jd jb
     render
+    progress
     json_escape js "$STATUS"
     json_escape jt "$TITLE"
     json_escape ja "$ARTIST"
     json_escape jd "$TEXT"
     json_escape jb "$BLANK"
-    printf '{"status":"%s","title":"%s","artist":"%s","display":"%s","blank":"%s"}\n' \
-        "$js" "$jt" "$ja" "$jd" "$jb"
+    printf '{"status":"%s","title":"%s","artist":"%s","display":"%s","blank":"%s","elapsed":"%s","left":"%s","pct":%s}\n' \
+        "$js" "$jt" "$ja" "$jd" "$jb" "$ELAPSED" "$LEFT" "$PCT"
 }
 
 # No playerctl: emit the idle state once and stop. Looping would only spin on a
@@ -127,6 +168,12 @@ while :; do
             emit
             wait_event "$TICK" && break
         done
+    elif [ "$STATUS" = "Playing" ] && [ "$LEN_US" -gt 0 ]; then
+        # The clock ticks every second; the title only refetches every 2.
+        emit
+        wait_event 1 && continue
+        emit
+        wait_event 1 || true
     else
         emit
         wait_event 2 || true

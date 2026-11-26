@@ -2,7 +2,7 @@
 
 ;; ── Data sources ─────────────────────────────────────────────────────────────
 (deflisten wsmap :initial "{}" "$HOME/.i3rc/eww/scripts/workspaces.sh")
-(deflisten player :initial '{"status":"none","title":"","artist":"","display":"","blank":""}'
+(deflisten player :initial '{"status":"none","title":"","artist":"","display":"","blank":"","elapsed":"","left":"","pct":0}'
   "$HOME/.i3rc/eww/scripts/player.sh")
 (deflisten net :initial '{"kind":"off","label":"offline"}'
   "$HOME/.i3rc/eww/scripts/network.sh")
@@ -85,12 +85,24 @@
       (button :class "ptitle"
               :onclick "${EWW_CMD} update title_hidden=${!title_hidden}"
               :onrightclick "$HOME/.i3rc/scripts/player_ctl.sh show-title"
-        (overlay
-          (label :halign "center" :text {title_hidden ? player.blank : player.display})
-          ;; An OVERLAY cannot resize its first child, so the eye costs no width.
-          ;; :visible works on a plain label, unlike on a defwidget — see below.
-          (label :class "icon eyemark" :visible {title_hidden}
-                 :halign "center" :valign "center" :text "󰈉"))))))
+        ;; Title on top, time and progress under it, like ncmpcpp's status line.
+        ;; Title pinned to the top, the row to the bottom (eww.scss sets the gaps).
+        ;; No row: :valign "center" on the title puts it back in the middle.
+        (box :orientation "v" :space-evenly false
+          (overlay
+            (label :class {player.left != "" ? "ptop" : ""} :halign "center"
+                   :valign {player.left != "" ? "start" : "center"} :vexpand true :text {title_hidden ? player.blank : player.display})
+            ;; An OVERLAY cannot resize its first child, so the eye costs no width.
+            ;; :visible works on a plain label, unlike on a defwidget — see below.
+            (label :class "icon eyemark" :visible {title_hidden}
+                   :halign "center" :valign "center" :text "󰈉"))
+          ;; No length (a live stream, some web players): no row at all.
+          ;; `progress`, not `scale`: display only, so a click still hides the title.
+          (box :class "pprog" :space-evenly false :spacing 4 :vexpand true :valign "end"
+               :visible {player.left != ""}
+            (label :class "ptime" :text {player.elapsed})
+            (progress :class "pbar" :hexpand true :valign "center" :value {player.pct})
+            (label :class "ptime" :text {player.left})))))))
 
 ;; ── Status island ────────────────────────────────────────────────────────────
 ;; Icon only: connected over wifi, connected over ethernet, or offline.

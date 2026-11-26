@@ -18,7 +18,8 @@ PLAYER_ACTIVE_FILE="$(i3rc_runtime_dir)/i3rc-player-active"
 
 # Every field of every player in one `playerctl` call (this runs 3×/second while
 # a title scrolls). 0x1f delimits: any printable separator occurs in real titles.
-PLAYER_FMT=$'{{playerName}}\x1f{{status}}\x1f{{title}}\x1f{{artist}}\x1f{{album}}'
+# position and mpris:length are in microseconds; a live stream has no length.
+PLAYER_FMT=$'{{playerName}}\x1f{{status}}\x1f{{title}}\x1f{{artist}}\x1f{{album}}\x1f{{position}}\x1f{{mpris:length}}'
 
 # Rank a name:status pair by the priority above; non-zero if neither Playing nor
 # Paused. Reads $LAST_ACTIVE, which player_state loads before its first call.
@@ -46,22 +47,22 @@ _player_remember() {
     return 0
 }
 
-# Sets PLAYER/STATUS/TITLE/ARTIST/ALBUM to the active player's state. All empty
-# when nothing is up.
+# Sets PLAYER/STATUS/TITLE/ARTIST/ALBUM/POS/LEN to the active player's state.
+# All empty when nothing is up. POS and LEN are microseconds.
 player_state() {
-    local name st ti ar al best=9
-    PLAYER="" STATUS="" TITLE="" ARTIST="" ALBUM="" RANK=0
+    local name st ti ar al po le best=9
+    PLAYER="" STATUS="" TITLE="" ARTIST="" ALBUM="" POS="" LEN="" RANK=0
 
     # Load before ranking, not after: _player_rank consults it per candidate.
     LAST_ACTIVE=""
     [ -r "$PLAYER_ACTIVE_FILE" ] && read -r LAST_ACTIVE <"$PLAYER_ACTIVE_FILE"
 
-    while IFS=$'\x1f' read -r name st ti ar al; do
+    while IFS=$'\x1f' read -r name st ti ar al po le; do
         [ -n "$name" ] || continue
         _player_rank "$name" "$st" || continue
         [ "$RANK" -lt "$best" ] || continue
         best=$RANK
-        PLAYER=$name STATUS=$st TITLE=$ti ARTIST=$ar ALBUM=$al
+        PLAYER=$name STATUS=$st TITLE=$ti ARTIST=$ar ALBUM=$al POS=$po LEN=$le
     done < <(playerctl -a metadata --format "$PLAYER_FMT" 2>/dev/null)
 
     if [ -n "$PLAYER" ]; then

@@ -122,6 +122,31 @@ window { background: transparent; }
 
 .ptitle       { color: $text; padding: 0 6px; }
 .ptitle:hover { color: $lavender; }
+// Time and progress under the title. The bar is 21px tall, so this row is
+// small: 6px text and a 2px line. The fill is the focused colour
+// (focus.local.scss); $peach, ncmpcpp's elapsed colour, is the fallback.
+// Two rows in 21px: no island padding, and each row gives up its line gap.
+.island.player { padding-top: 0; padding-bottom: 0; }
+// The title is pulled up and the line pushed down, so the two rows breathe,
+// and the line keeps 2px of bar under it.
+// The times bleed 2px into the gaps, so the row costs little height.
+.ptitle .ptop  { margin-top: -1px; margin-bottom: -2px; }
+.pprog         { margin-bottom: 2px; }
+.pprog .ptime  { margin: -2px 0; }
+.ptime {
+  font-size: 6px;
+  color: $subtext;
+}
+.pbar trough {
+  min-height: 2px;
+  border-radius: 1px;
+  background: $surface1;
+}
+.pbar progress {
+  min-height: 2px;
+  border-radius: 1px;
+  background-color: $peach;
+}
 // Stands in for a hidden title. Colour only; `icon` carries its size. Lit, not
 // dimmed — it is a state you switched on, and the only way back off.
 .eyemark      { color: $peach; }
