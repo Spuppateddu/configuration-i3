@@ -355,15 +355,19 @@ re-runs `launch_eww.sh` (detached — the relaunch kills the daemon and the list
 with it) whenever the list of outputs it would open on changes. Only on a real
 output event, so the first emit can never fire it and loop.
 
-The bar is **21px** tall, and that number is written in three places that must
+The bar is **28px** tall, and that number is written in three places that must
 agree: the window `:height` and the struts' `:distance` in `eww.yuck`, and
 `.bar { min-height }` in `eww.scss`. The struts one is what i3 shrinks the
 workspace by — get it wrong and windows sit under the bar, or a dead strip
 appears below it. The calendar popup's `:y` is bar height + 20.
 
-21px is the **floor**, and the thing holding it is the Nerd Font icon glyphs:
+Every item is centred in it. The media title and its time row are the one
+exception: they keep their own 21px block (`.pblock`), centred, so the two rows
+stay close together instead of spreading over the whole height.
+
+22px is the **floor** (with 15px icons), and the thing holding it is the Nerd Font icon glyphs:
 their line box at `.icon`'s size, plus `.seg`'s 1px of vertical padding, is what
-GTK asks for — ask for less and the window comes back 21 anyway. Shrinking the
+GTK asks for — ask for less and the window comes back 22 anyway. Shrinking the
 workspace tiles, the tray's `:icon-size` or the text size moves nothing. Only a
 smaller `.icon` does, and that is `BLE_SIZE_BAR` in *best-linux-environment*'s
 `fonts.local`, not a number to hand-edit here.

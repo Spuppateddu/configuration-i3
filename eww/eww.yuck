@@ -80,26 +80,35 @@
         (button :class "pbtn icon accent" :onclick "$HOME/.i3rc/scripts/player_ctl.sh toggle"
           {player.status == "Playing" ? "󰏤" : "󰐊"})
         (button :class "pbtn icon" :onclick "$HOME/.i3rc/scripts/player_ctl.sh next" "󰒭"))
-      ;; Left click hides the title, right click notifies it in full. `player.blank`
-      ;; is `player.display`'s CHARACTER count in NBSPs, so the slot never resizes.
+      ;; Left click hides the title, the time and the line; right click notifies
+      ;; the title in full. `player.blank` is `player.display`'s CHARACTER count
+      ;; in NBSPs, so the slot never resizes.
       (button :class "ptitle"
               :onclick "${EWW_CMD} update title_hidden=${!title_hidden}"
               :onrightclick "$HOME/.i3rc/scripts/player_ctl.sh show-title"
         ;; Title on top, time and progress under it, like ncmpcpp's status line.
         ;; Title pinned to the top, the row to the bottom (eww.scss sets the gaps).
         ;; No row: :valign "center" on the title puts it back in the middle.
-        (box :orientation "v" :space-evenly false
-          (overlay
-            (label :class {player.left != "" ? "ptop" : ""} :halign "center"
-                   :valign {player.left != "" ? "start" : "center"} :vexpand true :text {title_hidden ? player.blank : player.display})
+        ;; Its own 21px block, centred in the taller bar: the two rows keep
+        ;; their tight look instead of spreading over the whole height.
+        (box :class "pblock" :orientation "v" :space-evenly false :valign "center"
+          ;; Alone, the title takes the full height so it and the eye sit centred;
+          ;; with the row, it must not, or it pushes the row off the bottom.
+          (overlay :vexpand {player.left == "" || title_hidden}
+                   :valign {player.left != "" && !title_hidden ? "start" : "center"}
+            (label :class {player.left != "" && !title_hidden ? "ptop" : ""}
+                   :halign "center" :vexpand true
+                   :valign {player.left != "" && !title_hidden ? "start" : "center"}
+                   :text {title_hidden ? player.blank : player.display})
             ;; An OVERLAY cannot resize its first child, so the eye costs no width.
             ;; :visible works on a plain label, unlike on a defwidget — see below.
             (label :class "icon eyemark" :visible {title_hidden}
                    :halign "center" :valign "center" :text "󰈉"))
-          ;; No length (a live stream, some web players): no row at all.
+          ;; No length (a live stream, some web players), or the title hidden:
+          ;; no row at all — the time and the line give the track away too.
           ;; `progress`, not `scale`: display only, so a click still hides the title.
           (box :class "pprog" :space-evenly false :spacing 4 :vexpand true :valign "end"
-               :visible {player.left != ""}
+               :visible {player.left != "" && !title_hidden}
             (label :class "ptime" :text {player.elapsed})
             (progress :class "pbar" :hexpand true :valign "center" :value {player.pct})
             (label :class "ptime" :text {player.left})))))))
@@ -256,13 +265,13 @@
 (defwindow bar [mon others]
   :monitor 0
   :windowtype "dock"
-  :geometry (geometry :x "0%" :y "0px" :width "100%" :height "21px" :anchor "top center")
-  :reserve (struts :side "top" :distance "21px")
+  :geometry (geometry :x "0%" :y "0px" :width "100%" :height "28px" :anchor "top center")
+  :reserve (struts :side "top" :distance "28px")
   (bar :mon mon :others others))
 
 (defwindow calendar
   :monitor 0
   :windowtype "dialog"
   :stacking "fg"
-  :geometry (geometry :x "-150px" :y "41px" :anchor "top right")
+  :geometry (geometry :x "-150px" :y "48px" :anchor "top right")
   (box :class "calbox" (calendar :class "cal")))

@@ -32,7 +32,7 @@ window { background: transparent; }
 .bar {
   background: rgba(40, 40, 40, 0.94);
   padding: 0;
-  min-height: 21px; // == the struts' distance in eww.yuck — change both
+  min-height: 28px; // == the struts' distance in eww.yuck — change both
   color: $text;
 }
 
@@ -122,21 +122,28 @@ window { background: transparent; }
 
 .ptitle       { color: $text; padding: 0 6px; }
 .ptitle:hover { color: $lavender; }
-// Time and progress under the title. The bar is 21px tall, so this row is
-// small: 6px text and a 2px line. The fill is the focused colour
+// Time and progress under the title, in a 21px block (.pblock), so this row is
+// small: 8px text and a 2px line. The fill is the focused colour
 // (focus.local.scss); $peach, ncmpcpp's elapsed colour, is the fallback.
 // Two rows in 21px: no island padding, and each row gives up its line gap.
+.pblock { min-height: 21px; }
 .island.player { padding-top: 0; padding-bottom: 0; }
-// The title is pulled up and the line pushed down, so the two rows breathe,
-// and the line keeps 2px of bar under it.
+// Title pinned to the top, line to the bottom, the same 2px gap at each edge.
 // The times bleed 2px into the gaps, so the row costs little height.
-.ptitle .ptop  { margin-top: -1px; margin-bottom: -2px; }
-.pprog         { margin-bottom: 2px; }
+.ptitle .ptop  { margin-top: 0; margin-bottom: -2px; }
+.pprog         { margin-bottom: 1px; }
 .pprog .ptime  { margin: -2px 0; }
 .ptime {
-  font-size: 6px;
+  font-size: 8px;
   color: $subtext;
 }
+// GTK keeps a progress bar at least 150px wide, which made the row wider than
+// the title: the island then changed width, and the buttons moved, every time
+// a click hid the title. Both the old style property and the CSS one, as GTK 3
+// still reads the first.
+.pbar { -GtkProgressBar-min-horizontal-bar-width: 1; }
+progressbar.pbar.horizontal trough,
+progressbar.pbar.horizontal progress { min-width: 1px; }
 .pbar trough {
   min-height: 2px;
   border-radius: 1px;
@@ -160,7 +167,9 @@ window { background: transparent; }
 }
 .seg:hover { background: $surface0; }
 
-.icon { font-size: 15px; }
+// `.icon *` too: on a button the glyph is the button's inner label, which the
+// `*` rule above would otherwise shrink back to the text size.
+.icon, .icon * { font-size: 15px; }
 
 // The icon-to-its-own-value gap is a CONSTANT, never a density tier's job.
 // It used to be the parent box's :spacing {scr.item}, which the tier picked
