@@ -157,7 +157,13 @@
       (label :class "icon yellow" :text "󰍛")
       ;; No decimal on the total: it would push the string past .val.ram's
       ;; reserved width on a 100G+ machine and jitter the segments after it.
-      (label :class "val ram" :xalign 0 :text "RAM ${round(EWW_RAM.used_mem / 1073741824, 1)}/${round(EWW_RAM.total_mem / 1073741824, 0)}G"))))
+      (label :class "val ram" :xalign 0 :text "RAM ${round(EWW_RAM.used_mem / 1073741824, 1)}/${round(EWW_RAM.total_mem / 1073741824, 0)}G"))
+    ;; Root filesystem only. A percent, not used/total: a 2T disk would push the
+    ;; string past .val.disk's reserved width. The sizes are in the tooltip.
+    (box :space-evenly false
+         :tooltip "/: ${round(EWW_DISK["/"].used / 1073741824, 0)}G used of ${round(EWW_DISK["/"].total / 1073741824, 0)}G, ${round(EWW_DISK["/"].free / 1073741824, 0)}G free"
+      (label :class {EWW_DISK["/"].used_perc >= 90 ? "icon red" : "icon blue"} :text "󰋊")
+      (label :class "val disk" :xalign 0 :text "DISK ${round(EWW_DISK["/"].used_perc, 0)}%"))))
 
 ;; The pack is not always BAT0. Resolved once here; `?.` throughout because
 ;; the key can be absent (desktop) and :visible does not stop child evaluation.
